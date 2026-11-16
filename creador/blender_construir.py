@@ -67,7 +67,8 @@ def material(nombre):
     if nombre in _materiales:
         return _materiales[nombre]
     m = bpy.data.materials.new(nombre)
-    m.use_nodes = True
+    if bpy.app.version < (5, 0, 0):
+        m.use_nodes = True
     bsdf = m.node_tree.nodes["Principled BSDF"]
     r, g, b = COLORES.get(nombre, (0.8, 0.0, 0.8))
     bsdf.inputs["Base Color"].default_value = (r, g, b, 1)
@@ -206,7 +207,8 @@ def crear_luces():
     bpy.context.scene.collection.objects.link(sol)
 
     mundo = bpy.data.worlds.new("cielo")
-    mundo.use_nodes = True
+    if bpy.app.version < (5, 0, 0):
+        mundo.use_nodes = True
     fondo = mundo.node_tree.nodes["Background"]
     fondo.inputs["Color"].default_value = (0.25, 0.55, 1.0, 1)
     fondo.inputs["Strength"].default_value = 0.9
