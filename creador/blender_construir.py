@@ -471,14 +471,37 @@ def textos_en_camara(cam, plan, lente):
         clave(raiz, "scale", f0 + 5)
 
 
-def etiquetas_3d(cam, plan):
+MARGEN_X = 0.05            # margen lateral (fracción del ancho)
+ZONA_Y = (0.30, 0.86)      # franja vertical segura (0 = abajo, 1 = arriba)
+
+
+def _en_pantalla(cam, punto, lente):
+    """Posición en pantalla (0..1, 0..1) y tamaño visible (ancho, alto) a esa distancia."""
+    from bpy_extras.object_utils import world_to_camera_view
+    s = bpy.context.scene
+    nx, ny, z = world_to_camera_view(s, cam, Vector(punto))
+    alto_v = max(0.01, z) * 36.0 / lente
+    return nx, ny, alto_v * s.render.resolution_x / s.render.resolution_y, alto_v, z
+
+
+def _ajuste(valores, minimo, maximo):
+    """Desplazamiento que mete en [minimo, maximo] lo mejor posible todos los valores."""
+    falta = max(0.0, max(minimo - v for v in valores))    # hay que subir al menos esto
+    sobra = max(0.0, max(v - maximo for v in valores))    # hay que bajar al menos esto
+    return (falta - sobra) if not (falta and sobra) else (falta - sobra) / 2
+
+
+def etiquetas_3d(cam, plan, lente):
+    """Etiquetas con flecha. Se recolocan solas para no salirse de la pantalla."""
     azul = material_luz("etiqueta", (0.03, 0.22, 0.85))
+    s = bpy.context.scene
+    avisos = []
     for et in plan["etiquetas"]:
         tam = et["tam"]
         alto = et["alto"] if et["alto"] is not None else tam * 3.4
         destino = Vector(et["pos"])
+        f0, f1 = fr(et["t0"]), max(fr(et["t0"]) + 8, fr(et["t1"]))
         raiz = enlazar(bpy.data.objects.new("etiqueta", None))
-        raiz.location = destino + Vector((0, 0, alto))
         cara = enlazar(bpy.data.objects.new("etiqueta_cara", None))
         cara.parent = raiz
         copia = cara.constraints.new("COPY_ROTATION")
@@ -489,32 +512,83 @@ def etiquetas_3d(cam, plan):
         txt.parent = cara
         txt.location = (0, 0, tam * 0.06)
         bpy.context.view_layer.update()
-        ancho = txt.dimensions.x
+        medio_ancho = (txt.dimensions.x + tam * 0.9) / 2
+        medio_alto = tam * 0.8
+
+        # --- Encajar en pantalla: se mira dónde cae durante todo el rato que se ve ---
+        pos = destino + Vector((0, 0, alto))
+        escala = 1.0
+        for _ in range(3):
+            xs, ys, datos = [], [], []
+            for f in sorted({f0 + 6, (f0 + f1) // 2, f1 - 2}):
+                s.frame_set(f)
+                bpy.context.view_layer.update()
+                nx, ny, ancho_v, alto_v, z = _en_pantalla(cam, pos, lente)
+                xs.append(nx)
+                ys.append(ny)
+                datos.append((ancho_v, alto_v, cam.matrix_world.copy()))
+            ancho_v = sum(d[0] for d in datos) / len(datos)
+            alto_v = sum(d[1] for d in datos) / len(datos)
+            mw = datos[len(datos) // 2][2]
+            escala = min(escala, (1 - 2 * MARGEN_X) * 0.98 * ancho_v / (2 * medio_ancho * escala) * escala)
+            hw, hh = medio_ancho * escala / ancho_v, medio_alto * escala / alto_v
+            dx = _ajuste(xs, MARGEN_X + hw, 1 - MARGEN_X - hw)
+            dy = _ajuste(ys, ZONA_Y[0] + hh, ZONA_Y[1] - hh)
+            if abs(dx) < 0.004 and abs(dy) < 0.004:
+                break
+            derecha, arriba = mw.col[0].xyz.normalized(), mw.col[1].xyz.normalized()
+            pos = pos + derecha * (dx * ancho_v) + arriba * (dy * alto_v)
+        fuera = [f for f, x, y in zip((f0 + 6, (f0 + f1) // 2, f1 - 2), xs, ys)
+                 if not (hw <= x + 0.02 and x - 0.02 <= 1 - hw and 0.2 <= y <= 0.93)]
+        if fuera:
+            avisos.append(f"la etiqueta «{et['texto']}» no cabe del todo en pantalla "
+                          f"(segundos {et['t0']:.1f}-{et['t1']:.1f}): acerca la cámara a ese punto "
+                          "o acorta el rato que se muestra")
+        s.frame_set((f0 + f1) // 2)
+        bpy.context.view_layer.update()
+        nx, ny, _, _, z = _en_pantalla(cam, destino, lente)
+        if not (0.03 <= nx <= 0.97 and 0.1 <= ny <= 0.95 and z > 0):
+            avisos.append(f"la etiqueta «{et['texto']}» señala un punto que la cámara no ve")
+
+        raiz.location = pos
         partes = [txt]
 
-        def parte(tipo, dim, pos, padre, rot=(0, 0, 0)):
+        def parte(tipo, dim, padre, loc, quat=None):
             m = malla_base(tipo).copy()
             for v in m.vertices:
                 v.co = Vector((v.co.x * dim[0], v.co.y * dim[1], v.co.z * dim[2]))
             m.materials.append(azul)
             o = enlazar(bpy.data.objects.new("etiqueta_p", m))
             o.parent = padre
-            o.location = pos
-            o.rotation_euler = [math.radians(a) for a in rot]
+            o.location = loc
+            if quat is not None:
+                o.rotation_mode = "QUATERNION"
+                o.rotation_quaternion = quat
             partes.append(o)
+            return o
 
-        parte("cubo", (ancho + tam * 0.9, tam * 1.6, tam * 0.05), (0, 0, 0), cara)
-        largo = max(0.1, alto - tam * 1.7)
-        parte("cilindro", (tam * 0.2, tam * 0.2, largo), (0, 0, -tam * 0.8 - largo / 2), raiz)
-        parte("cono", (tam * 0.7, tam * 0.7, tam * 0.8), (0, 0, -alto + tam * 0.5), raiz, (180, 0, 0))
-        f0, f1 = fr(et["t0"]), fr(et["t1"])
+        parte("cubo", (medio_ancho * 2, medio_alto * 2, tam * 0.05), cara, (0, 0, 0))
+        # Flecha: de debajo del cartel hasta el punto señalado (puede ir inclinada)
+        t = tam * escala
+        hacia = destino - pos
+        largo_total = hacia.length
+        direccion = hacia.normalized()
+        giro = direccion.to_track_quat("Z", "Y")
+        ini, punta = medio_alto * escala * 1.05, t * 0.8
+        largo = max(0.05, largo_total - ini - punta - t * 0.15)
+        flecha = [parte("cilindro", (t * 0.2, t * 0.2, largo), None, pos + direccion * (ini + largo / 2), giro),
+                  parte("cono", (t * 0.7, t * 0.7, punta), None,
+                        pos + direccion * (ini + largo + punta / 2), giro)]
         for o in partes:
             sin_sombra(o)
             visible_entre(o, f0, f1)
-        raiz.scale = (0.001,) * 3
-        clave(raiz, "scale", f0, "atras")
-        raiz.scale = (1, 1, 1)
-        clave(raiz, "scale", f0 + 6)
+        for o, fin in [(raiz, escala)] + [(o, 1.0) for o in flecha]:
+            o.scale = (0.001,) * 3
+            clave(o, "scale", f0, "atras")
+            o.scale = (fin,) * 3
+            clave(o, "scale", f0 + 6)
+    s.frame_set(1)
+    return avisos
 
 
 def confeti(c):
@@ -637,7 +711,8 @@ def main():
     lente = getattr(est, "CAMARA", {}).get("lente", 24)
     cam = crear_camara(plan["camara"], lente)
     textos_en_camara(cam, plan, lente)
-    etiquetas_3d(cam, plan)
+    for aviso in etiquetas_3d(cam, plan, lente):
+        print("[creador] AVISO:", aviso)
     if plan["confeti"]:
         confeti(plan["confeti"])
 

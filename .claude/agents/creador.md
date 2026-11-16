@@ -74,7 +74,13 @@ solo se vuelve a pagar una frase si cambia su texto o la voz.
      cercanos y generales, y usa `corte` de vez en cuando.
 5. **Encuadre:** renderiza con `--ver` 1–2 imágenes por escena, míralas (Read) y
    corrige cámaras hasta que la acción quede centrada, sin objetos tapando y sin
-   media pantalla vacía. Comprueba que avisos y etiquetas se ven completos.
+   media pantalla vacía.
+   **Nada puede quedar cortado.** Las etiquetas se recolocan solas dentro de la
+   pantalla, pero tienes que comprobarlo: renderiza con `--ver` el principio, la
+   mitad y el final de CADA etiqueta y aviso, y mira que el cartel entero y lo que
+   señala se ven. Si el comando imprime una línea `[creador] AVISO:`, corrígela
+   (acerca la cámara, mueve el punto o acorta el rato) antes de seguir. Los tiempos
+   cambian con la voz real, así que repite esta comprobación tras generar la voz.
 6. **Entrega:** devuelve el nombre de la estructura, el guion escena por escena y
    las fuentes de los datos. El boceto y el render final los lanza quien te llamó
    (comandos `/video` y `/final`), salvo que te pidan expresamente renderizar.

@@ -25,6 +25,8 @@ háblale en español sencillo y no le pidas que ejecute comandos.
    `python3 creador/pipeline.py <nombre> --calidad boceto --gpu`
    (tarda pocos minutos; si supera el límite de tiempo, lánzalo en segundo plano y
    espera a que termine).
+   Si en la salida aparece alguna línea `[creador] AVISO:` (un texto que no cabe o
+   señala algo que no se ve), corrige la escena y repite el boceto antes de enseñarlo.
 4. **Ábrelo** con `open salida/<nombre>/video_es_boceto.mp4` y dile al usuario que es
    un borrador (se ve borroso y a saltos) para revisar voz, historia y movimiento.
 5. **PARA y pregunta:** "¿Qué cambiamos?" Ofrece ejemplos: textos, ritmo, una escena

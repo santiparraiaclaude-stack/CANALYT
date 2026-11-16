@@ -221,7 +221,7 @@ ESCENAS = [
             {"id": "x1", "t": 0.9, "durf": 0.08, "quitar": True},
         ],
         "avisos": [{"es": "¡CUIDADO!", "en": "WATCH OUT!", "t": (0.6, 0.93)}],
-        "etiquetas": [{"es": "100 M DE FONDO", "en": "300 FT DEEP", "pos": (-3.5, -5, 0.2), "t": (0.34, 0.6)}],
+        "etiquetas": [{"es": "100 M DE FONDO", "en": "300 FT DEEP", "pos": (-3.5, -5, 0.2), "t": (0.3, 0.62)}],
     },
     {   # 3 — cimientos
         "es": "La solución: solo dos torres gigantes y el centro libre. Para cada una levantas un muro en pleno mar, lo vacías como una piscina y adentro pones los cimientos.",
@@ -236,9 +236,9 @@ ESCENAS = [
         "en": "On top you stack steel, block on block, up to 746 feet. Each tower holds 600,000 rivets.",
         "camara": {"centro": (-TX, 0, 4), "distancia": 20, "altura": 9, "angulo": 222},
         "camara_fin": {"centro": (-2, 0, 6), "distancia": 38, "altura": 20, "angulo": 212},
-        "ventana": (0.03, 0.8),
+        "ventana": (0.03, 0.7),
         "piezas": _torres(),
-        "etiquetas": [{"es": "227 M", "en": "746 FT", "pos": (-TX, 0, TOPE), "t": (0.8, 1.0), "alto": 4}],
+        "etiquetas": [{"es": "227 M", "en": "746 FT", "pos": (-TX, 0, TOPE), "t": (0.74, 1.0), "alto": 4}],
     },
     {   # 5 — cables
         "es": "Luego tiendes dos cables de torre a torre. Cada uno lleva 27 mil alambres de acero y mide casi un metro de grueso.",
