@@ -1,0 +1,94 @@
+"""Monta el video final: frames + voz + subtítulos (+ música opcional)."""
+import os
+import subprocess
+
+FUENTE = os.environ.get("CREADOR_FUENTE", "Inter Black")
+
+
+def _t(seg):
+    h = int(seg // 3600)
+    m = int(seg % 3600 // 60)
+    s = seg % 60
+    return f"{h}:{m:02d}:{s:05.2f}"
+
+
+def _escapar(texto):
+    return texto.replace("\\", "").replace("{", "(").replace("}", ")").replace("\n", "\\N")
+
+
+def subtitulos_ass(lt, idioma, titulo, ruta):
+    cab = f"""[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Titulo,{FUENTE},92,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,7,4,8,60,60,230,1
+Style: Texto,{FUENTE},66,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,6,3,2,80,80,330,1
+Style: Paso,{FUENTE},50,&H0000D7FF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,2,0,1,5,2,8,60,60,160,1
+Style: Final,{FUENTE},84,&H0000D7FF,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,7,4,5,70,70,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+    pop = r"{\fad(120,120)\fscx70\fscy70\t(0,180,\fscx105\fscy105)\t(180,280,\fscx100\fscy100)}"
+    lineas = []
+    segs = lt["segmentos"]
+    n_pasos = len(segs) - 2
+    paso_txt = "PASO" if idioma == "es" else "STEP"
+    for i, s in enumerate(segs):
+        ini, fin = s["inicio"], s["inicio"] + s["duracion"]
+        texto = _escapar(s["texto"][idioma])
+        if s["tipo"] == "gancho":
+            lineas.append(f"Dialogue: 1,{_t(ini)},{_t(fin)},Titulo,,0,0,0,,{pop}{_escapar(titulo)}")
+            lineas.append(f"Dialogue: 0,{_t(ini + 0.3)},{_t(fin)},Texto,,0,0,0,,{pop}{texto}")
+        elif s["tipo"] == "paso":
+            lineas.append(f"Dialogue: 1,{_t(ini)},{_t(fin)},Paso,,0,0,0,,{pop}{paso_txt} {i}/{n_pasos}")
+            lineas.append(f"Dialogue: 0,{_t(ini)},{_t(fin)},Texto,,0,0,0,,{pop}{texto}")
+        else:
+            lineas.append(f"Dialogue: 0,{_t(ini)},{_t(fin + 0.5)},Final,,0,0,0,,{pop}{texto}")
+    with open(ruta, "w", encoding="utf-8") as f:
+        f.write(cab + "\n".join(lineas) + "\n")
+
+
+def pista_audio(lt, idioma, carpeta_voz, ruta_wav, musica=None):
+    """Une las voces de cada segmento respetando la línea de tiempo."""
+    partes = []
+    for i, s in enumerate(lt["segmentos"]):
+        mp3 = os.path.join(carpeta_voz, f"{idioma}_{i:02d}.mp3")
+        parte = os.path.join(carpeta_voz, f"_{idioma}_{i:02d}.wav")
+        dur = f"{s['duracion']:.3f}"
+        if os.path.exists(mp3):
+            cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", mp3,
+                   "-af", f"adelay=150|150,apad=whole_dur={dur}", "-t", dur,
+                   "-ar", "44100", "-ac", "2", parte]
+        else:
+            cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi",
+                   "-i", "anullsrc=r=44100:cl=stereo", "-t", dur, parte]
+        subprocess.run(cmd, check=True)
+        partes.append(parte)
+    lista = os.path.join(carpeta_voz, f"_{idioma}_lista.txt")
+    with open(lista, "w") as f:
+        f.writelines(f"file '{os.path.abspath(p)}'\n" for p in partes)
+    voz_wav = ruta_wav if not musica else ruta_wav + ".voz.wav"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",
+                    "-i", lista, "-c", "copy", voz_wav], check=True)
+    if musica:
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error", "-i", voz_wav, "-stream_loop", "-1", "-i", musica,
+            "-filter_complex",
+            "[1:a]volume=0.18[m];[0:a][m]amix=inputs=2:duration=first:dropout_transition=0[a]",
+            "-map", "[a]", ruta_wav], check=True)
+
+
+def video_final(carpeta_frames, fps, ruta_wav, ruta_ass, ruta_mp4):
+    filtro = f"scale=1080:1920:flags=lanczos,ass='{ruta_ass}'"
+    subprocess.run([
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-framerate", str(fps), "-i", os.path.join(carpeta_frames, "%04d.png"),
+        "-i", ruta_wav, "-vf", filtro,
+        "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
+        ruta_mp4], check=True)
