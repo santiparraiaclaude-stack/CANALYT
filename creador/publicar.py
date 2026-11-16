@@ -1,5 +1,11 @@
 """Programa las publicaciones del canal y recoge sus estadísticas (Upload-Post).
 
+  Modo manual (gratis): tú subes los videos, el proyecto lleva el calendario
+    python3 creador/publicar.py agendar golden_gate    # reserva fecha y prepara textos
+    python3 creador/publicar.py calendario             # qué toca subir y cuándo
+    python3 creador/publicar.py subido golden_gate     # márcalo cuando lo subas
+
+  Modo automático (opcional, con cuenta de Upload-Post)
     python3 creador/publicar.py estado                 # ¿está todo conectado?
     python3 creador/publicar.py programar golden_gate  # sube el video y lo programa
     python3 creador/publicar.py metricas               # actualiza las estadísticas
@@ -278,6 +284,98 @@ def metricas(_a):
     print(f"\nDatos completos en {METRICAS}")
 
 
+# --- modo manual: tú subes, el proyecto lleva el calendario ---------------------
+
+REDES_MANUAL = {
+    "tiktok": "TikTok (tiktok.com -> Subir -> Programar)",
+    "instagram": "Instagram y Facebook (Meta Business Suite -> Crear reel -> Programar)",
+    "youtube": "YouTube Shorts (YouTube Studio -> Crear -> Subir video -> Programar)",
+}
+DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def fecha_bonita(texto):
+    d = dt.datetime.fromisoformat(texto)
+    return f"{DIAS[d.weekday()]} {d.day:02d}/{d.month:02d} a las {d.strftime('%H:%M')}"
+
+
+def agendar(a):
+    """Reserva la fecha del video y deja los textos listos para copiar y pegar."""
+    c = cfg()
+    carpeta = os.path.join(RAIZ, "salida", a.nombre)
+    textos = leer(os.path.join(carpeta, "publicar.json"), None)
+    if not textos:
+        sys.exit(f"Falta {carpeta}/publicar.json con título, descripción y hashtags.")
+    registro = leer(REGISTRO, [])
+    previo = next((r for r in registro if r["nombre"] == a.nombre), None)
+    if previo and not a.fecha:
+        fecha = previo["fecha"]
+    else:
+        fecha = (a.fecha.replace(" ", "T") + (":00" if len(a.fecha) == 16 else "")) if a.fecha \
+            else siguiente_hueco(c, registro)
+    registro = [r for r in registro if r["nombre"] != a.nombre]
+    registro.append({"nombre": a.nombre, "fecha": fecha, "zona": c["zona"], "modo": "manual",
+                     "redes": c["redes"], "titulo": textos["titulo"], "tema": textos.get("tema"),
+                     "gancho": textos.get("gancho"), "subido": (previo or {}).get("subido", False),
+                     "enlaces": (previo or {}).get("enlaces", {}), **datos_del_video(a.nombre)})
+    registro.sort(key=lambda r: r["fecha"])
+    guardar(REGISTRO, registro)
+
+    etiquetas = " ".join("#" + h.lstrip("#") for h in textos.get("hashtags", []))
+    pie = f"{textos['titulo']}\n\n{textos.get('descripcion', '')}\n\n{etiquetas}".strip()
+    md = [f"# {textos['titulo']}", "",
+          f"**Publicar el {fecha_bonita(fecha)}** (hora de {c['zona']})", "",
+          f"Archivo: `salida/{a.nombre}/video_es_alta.mp4`", "",
+          "En todas las redes: marca el video como **contenido generado con IA**.", ""]
+    for red, donde in REDES_MANUAL.items():
+        md += [f"## {donde}", ""]
+        if red == "youtube":
+            md += ["Título:", "```", textos["titulo"][:90] + " #shorts", "```", "Descripción:"]
+        else:
+            md += ["Texto:"]
+        md += ["```", pie, "```", ""]
+    if textos.get("comentario"):
+        md += ["## Comentario para fijar (en todas)", "```", textos["comentario"], "```", ""]
+    ruta = os.path.join(carpeta, "publicar.md")
+    with open(ruta, "w", encoding="utf-8") as f:
+        f.write("\n".join(md))
+    print(f"📅 '{textos['titulo']}' -> {fecha_bonita(fecha)}")
+    print(f"   Textos para copiar: {ruta}")
+
+
+def calendario(_a):
+    registro = sorted(leer(REGISTRO, []), key=lambda r: r["fecha"])
+    if not registro:
+        print("No hay videos en el calendario todavía.")
+        return
+    c = cfg()
+    ahora = dt.datetime.now(ZoneInfo(c["zona"])).strftime("%Y-%m-%dT%H:%M:00")
+    print("Calendario de publicaciones:")
+    for r in registro:
+        if r.get("subido"):
+            marca = "✅ subido"
+        elif r["fecha"] < ahora:
+            marca = "⚠️  ATRASADO: falta subirlo"
+        else:
+            marca = "⏳ pendiente"
+        print(f"  {fecha_bonita(r['fecha']):<32} {r['titulo'][:44]:<45} {marca}")
+    print("\nCuando subas uno:  python3 creador/publicar.py subido <nombre>")
+
+
+def subido(a):
+    registro = leer(REGISTRO, [])
+    r = next((x for x in registro if x["nombre"] == a.nombre), None)
+    if not r:
+        sys.exit(f"'{a.nombre}' no está en el calendario.")
+    r["subido"] = True
+    r["fecha_subida"] = dt.datetime.now(ZoneInfo(cfg()["zona"])).strftime("%Y-%m-%dT%H:%M:00")
+    for red in ("tiktok", "instagram", "youtube", "facebook"):
+        if getattr(a, red):
+            r.setdefault("enlaces", {})[red] = getattr(a, red)
+    guardar(REGISTRO, registro)
+    print(f"✅ '{r['titulo']}' marcado como subido.")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="orden", required=True)
@@ -291,6 +389,16 @@ def main():
     p.add_argument("--simular", action="store_true", help="muestra lo que haría sin subir nada")
     p.set_defaults(f=programar)
     sub.add_parser("metricas").set_defaults(f=metricas)
+    p = sub.add_parser("agendar", help="modo manual: reserva fecha y prepara los textos")
+    p.add_argument("nombre")
+    p.add_argument("--fecha", help='"2026-11-20 18:30" (si no, el siguiente hueco libre)')
+    p.set_defaults(f=agendar)
+    sub.add_parser("calendario").set_defaults(f=calendario)
+    p = sub.add_parser("subido", help="marca un video como ya subido (y guarda sus enlaces)")
+    p.add_argument("nombre")
+    for red in ("tiktok", "instagram", "youtube", "facebook"):
+        p.add_argument("--" + red, help="enlace del video en esa red")
+    p.set_defaults(f=subido)
     a = ap.parse_args()
     try:
         a.f(a)

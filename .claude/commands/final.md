@@ -25,13 +25,13 @@ Si no se indica nombre, usa la estructura modificada más recientemente en
      usado (pregunta, reto, dato sorprendente, error famoso...). Estos dos sirven
      para analizar después qué funciona, así que sé consistente con los anteriores
      (mira `canal/publicaciones.json`).
-5. Cuando termine el render, abre el video con `open salida/<nombre>/video_es_alta.mp4`
-   y enseña el título, la descripción y los hashtags.
-6. **Programa la publicación.** Muestra primero qué va a pasar con
-   `python3 creador/publicar.py programar <nombre> --simular` (fecha y redes) y
-   pregunta al usuario si lo programas así o quiere otra fecha. Cuando confirme:
-   `python3 creador/publicar.py programar <nombre>` (añade `--fecha "AAAA-MM-DD HH:MM"`
-   si pidió otra). Si falta configurar Upload-Post, dile que ejecute
-   `python3 creador/publicar.py estado` y explícale lo que salga.
+5. Cuando termine el render, abre el video con `open salida/<nombre>/video_es_alta.mp4`.
+6. **Ponlo en el calendario.** Ejecuta `python3 creador/publicar.py agendar <nombre>`
+   (añade `--fecha "AAAA-MM-DD HH:MM"` si el usuario pidió una fecha concreta).
+   Reserva el siguiente hueco libre y escribe `salida/<nombre>/publicar.md` con los
+   textos listos para copiar en cada red. Ábrelo con `open salida/<nombre>/publicar.md`.
+7. Dile al usuario, en pocas líneas: qué día y a qué hora le toca subirlo, que los
+   textos para copiar están en ese archivo, que marque el video como contenido hecho
+   con IA, y que cuando lo suba te lo diga (o escriba `/calendario`) para marcarlo.
 
 Si el render falla o se interrumpe, explica qué pasó en una frase y vuelve a lanzarlo.
