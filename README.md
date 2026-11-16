@@ -28,42 +28,65 @@ powershell -ExecutionPolicy Bypass -File setup\instalar_windows.ps1
 Después, abre `.env` y pega tu clave de ElevenLabs en `ELEVENLABS_API_KEY=`.
 La clave está en elevenlabs.io → Profile → API Keys.
 
-## 2. Hacer un video
+## 2. Elegir la voz
 
 ```bash
-# Imagen de prueba para revisar el encuadre (segundos)
-python3 creador/pipeline.py golden_gate --frame 600
-
-# Vista previa rápida 360x640 (minutos)
-python3 creador/pipeline.py golden_gate
-
-# Versión final 1080x1920 en dos idiomas, con tarjeta gráfica y música
-python3 creador/pipeline.py golden_gate --calidad alta --gpu --idiomas es en --musica musica.mp3
+python3 creador/probar_voces.py
 ```
 
+Genera una muestra de cada voz de tu cuenta de ElevenLabs en `salida/voces/`.
+Escúchalas y quédate con una:
+
+```bash
+python3 creador/probar_voces.py --elegir NOMBRE
+```
+
+Para más voces (por ejemplo con acento latino), añádelas en elevenlabs.io →
+Voices → Voice Library → "Add to My Voices" y vuelve a ejecutar el script.
+La velocidad se cambia en `.env` con `ELEVENLABS_VELOCIDAD=1.08`.
+
+## 3. Hacer un video
+
+```bash
+# Imágenes sueltas (en esos segundos) para revisar el encuadre
+python3 creador/pipeline.py golden_gate --ver 3 20 60
+
+# Borrador rápido para ver el movimiento
+python3 creador/pipeline.py golden_gate --calidad boceto --gpu
+
+# Versión para publicar (1080x1920)
+python3 creador/pipeline.py golden_gate --calidad alta --gpu
+```
+
+Opciones: `--idiomas es en`, `--musica cancion.mp3`, `--sin-voz`.
 Los videos quedan en `salida/golden_gate/`.
 
-## 3. El agente `creador`
+## 4. El agente `creador`
 
-Está en `.claude/agents/creador.md`. Desde Claude Code, en esta carpeta, pídele cosas como:
+Está en `.claude/agents/creador.md`. Para tenerlo en todos tus proyectos:
 
-- *"creador, dame 10 ideas de estructuras que estén en tendencia esta semana"*
-- *"creador, haz el video de la Torre Eiffel"*
-- *"creador, renderiza golden_gate en alta calidad en español e inglés"*
+```bash
+mkdir -p ~/.claude/agents && cp .claude/agents/creador.md ~/.claude/agents/
+```
 
-El agente busca datos reales, escribe el guion, crea `creador/estructuras/<nombre>.py`,
-revisa el encuadre, renderiza y te deja el título, la descripción y los hashtags.
+Desde Claude Code, en esta carpeta, pídele cosas como:
+
+- *"creador, dame 10 ideas de videos que estén en tendencia"*
+- *"creador, haz el video de cómo se hace un túnel bajo el mar"*
 
 ## Estructura del proyecto
 
 ```
 .claude/agents/creador.md     el agente
 creador/
-  piezas.py                   piezas 3D básicas y paleta de colores
+  piezas.py                   piezas 3D, prefabricados (autos, barcos...) y colores
+  guion.py                    convierte las escenas en una línea de tiempo
   estructuras/golden_gate.py  un archivo por video (plantilla)
   blender_construir.py        animación y render en Blender
-  voz.py                      narración con ElevenLabs
-  montar.py                   subtítulos, audio y mp4 final
+  voz.py                      narración con ElevenLabs (tiempos por palabra)
+  probar_voces.py             muestras para elegir la voz
+  sonido.py                   efectos de sonido
+  montar.py                   mezcla de audio y mp4 final
   pipeline.py                 lo une todo
 setup/                        instaladores
 ```

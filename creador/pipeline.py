@@ -1,13 +1,17 @@
 """Produce un video completo de "Constrúyelo tú".
 
-    python3 creador/pipeline.py golden_gate                # vista previa rápida
+    python3 creador/pipeline.py golden_gate --ver 2 10 30      # imágenes sueltas (segundos)
+    python3 creador/pipeline.py golden_gate --gpu              # vista previa rápida
     python3 creador/pipeline.py golden_gate --calidad alta --gpu
     python3 creador/pipeline.py golden_gate --idiomas es en --musica musica.mp3
-    python3 creador/pipeline.py golden_gate --frame 400    # solo una imagen de prueba
 
-Resultado en salida/<estructura>/video_<idioma>.mp4
+Resultado: salida/<estructura>/video_<idioma>_<calidad>.mp4
+
+Si solo cambias la música o los sonidos, no se vuelve a renderizar: las
+imágenes se reutilizan mientras no cambien el guion, la voz ni la escena.
 """
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -19,21 +23,24 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, AQUI)
 
+import guion  # noqa: E402
 import montar  # noqa: E402
+import sonido  # noqa: E402
 import voz  # noqa: E402
 
-FPS = {"baja": 24, "media": 30, "alta": 30}
-DUR_MIN = {"gancho": 3.0, "paso": 3.5, "final": 4.0}
-PAUSA = 0.5   # respiro tras cada frase
+FPS = {"boceto": 12, "baja": 24, "media": 30, "alta": 30}
+PAUSA = 0.35          # respiro tras cada frase
+DUR_MINIMA = 2.2
 
 
 def buscar_blender():
     for c in (os.environ.get("BLENDER_PATH"), shutil.which("blender"),
               "/Applications/Blender.app/Contents/MacOS/Blender",
+              r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe",
               r"C:\Program Files\Blender Foundation\Blender 4.2\blender.exe"):
         if c and os.path.exists(c):
             return c
-    sys.exit("No encuentro Blender. Instálalo (setup/) o define BLENDER_PATH.")
+    sys.exit("No encuentro Blender. Instálalo (setup/) o define BLENDER_PATH en .env")
 
 
 def cargar(nombre):
@@ -46,6 +53,17 @@ def cargar(nombre):
     return mod, ruta
 
 
+def huella_render(ruta_est, lt, calidad):
+    h = hashlib.sha1()
+    for ruta in (ruta_est, os.path.join(AQUI, "piezas.py"), os.path.join(AQUI, "guion.py"),
+                 os.path.join(AQUI, "blender_construir.py")):
+        with open(ruta, "rb") as f:
+            h.update(f.read())
+    h.update(json.dumps(lt, sort_keys=True).encode())
+    h.update(calidad.encode())
+    return h.hexdigest()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("estructura")
@@ -53,74 +71,78 @@ def main():
     ap.add_argument("--idiomas", nargs="+", default=["es"])
     ap.add_argument("--gpu", action="store_true")
     ap.add_argument("--musica")
-    ap.add_argument("--frame", type=int)
+    ap.add_argument("--ver", nargs="+", type=float, metavar="SEG",
+                    help="renderiza solo imágenes sueltas en esos segundos")
     ap.add_argument("--sin-voz", action="store_true")
-    ap.add_argument("--solo-montar", action="store_true",
-                    help="no vuelve a renderizar: usa las imágenes que ya existen")
+    ap.add_argument("--guardar-blend", action="store_true")
     a = ap.parse_args()
     voz.cargar_env()
-    montar.FUENTE = os.environ.get("CREADOR_FUENTE", montar.FUENTE)
+    if a.sin_voz:
+        os.environ["ELEVENLABS_API_KEY"] = ""
 
     est, ruta_est = cargar(a.estructura)
     out = os.path.join(RAIZ, "salida", a.estructura)
-    carpeta_voz = os.path.join(out, "voz")
-    carpeta_frames = os.path.join(out, f"frames_{a.calidad}")
-    os.makedirs(carpeta_voz, exist_ok=True)
+    os.makedirs(out, exist_ok=True)
+    if not voz.hay_clave():
+        print("[creador] Sin clave de ElevenLabs: el video saldrá sin narración.")
 
-    # 1) Segmentos y voz ------------------------------------------------------
-    segmentos = [{"tipo": "gancho", "texto": est.GANCHO}]
-    segmentos += [{"tipo": "paso", "texto": {k: v for k, v in p.items() if k != "piezas"}}
-                  for p in est.PASOS]
-    segmentos.append({"tipo": "final", "texto": est.FINAL})
-
-    usar_voz = not a.sin_voz and voz.hay_clave()
-    if not usar_voz:
-        print("[creador] Sin ELEVENLABS_API_KEY: el video saldrá sin narración.")
-    t = 0.0
-    for i, s in enumerate(segmentos):
-        dur = DUR_MIN[s["tipo"]]
-        for idioma in a.idiomas:
-            if usar_voz:
-                print(f"[creador] Voz {idioma} {i + 1}/{len(segmentos)}")
-                d = voz.generar(s["texto"][idioma], idioma,
-                                os.path.join(carpeta_voz, f"{idioma}_{i:02d}.mp3"))
-                dur = max(dur, d + PAUSA)
-        s["inicio"], s["duracion"] = round(t, 3), round(dur, 3)
-        t += dur
-    lt = {"segmentos": segmentos, "duracion_total": round(t, 3)}
-    ruta_lt = os.path.join(out, "linea_tiempo.json")
-    with open(ruta_lt, "w", encoding="utf-8") as f:
-        json.dump(lt, f, ensure_ascii=False, indent=2)
-    print(f"[creador] Duración total: {t:.1f} s")
-
-    # 2) Render 3D ------------------------------------------------------------
-    cmd = [buscar_blender(), "-b", "--factory-startup",
-           "-P", os.path.join(AQUI, "blender_construir.py"), "--",
-           "--estructura", ruta_est, "--linea-tiempo", ruta_lt,
-           "--salida", carpeta_frames, "--calidad", a.calidad]
-    if a.gpu:
-        cmd.append("--gpu")
-    if a.frame:
-        cmd += ["--frame", str(a.frame)]
-    if a.solo_montar and os.path.isdir(carpeta_frames) and os.listdir(carpeta_frames):
-        print("[creador] Usando las imágenes ya renderizadas")
-    else:
-        print("[creador] Renderizando con Blender... (puede tardar)")
-        subprocess.run(cmd, check=True)
-    if a.frame:
-        print(f"[creador] Imagen de prueba en {carpeta_frames}/prueba_{a.frame:04d}.png")
-        return
-
-    # 3) Montaje por idioma ---------------------------------------------------
     for idioma in a.idiomas:
-        ass = os.path.join(out, f"subs_{idioma}.ass")
+        # 1) Voz y línea de tiempo --------------------------------------------
+        escenas, mp3s, t = [], [], 0.0
+        textos = guion.textos_de(est, idioma)
+        for i, texto in enumerate(textos):
+            if voz.hay_clave():
+                print(f"[creador] Voz {idioma} {i + 1}/{len(textos)}")
+            mp3, dur, palabras = voz.generar(texto, idioma, os.path.join(out, "voz"))
+            dur = max(DUR_MINIMA, dur + voz.DESFASE + PAUSA)
+            if est.ESCENAS[i].get("final"):
+                dur = max(dur, 5.0)
+            escenas.append({"inicio": round(t, 3), "duracion": round(dur, 3), "palabras": palabras})
+            mp3s.append(mp3)
+            t += dur
+        lt = {"idioma": idioma, "escenas": escenas, "duracion_total": round(t, 3)}
+        ruta_lt = os.path.join(out, f"linea_tiempo_{idioma}.json")
+        with open(ruta_lt, "w", encoding="utf-8") as f:
+            json.dump(lt, f, ensure_ascii=False, indent=1)
+        print(f"[creador] Duración ({idioma}): {t:.1f} s")
+
+        # 2) Render 3D ----------------------------------------------------------
+        frames = os.path.join(out, f"frames_{a.calidad}_{idioma}")
+        cmd = [buscar_blender(), "-b", "--factory-startup",
+               "-P", os.path.join(AQUI, "blender_construir.py"), "--",
+               "--estructura", ruta_est, "--linea-tiempo", ruta_lt,
+               "--salida", frames, "--calidad", a.calidad]
+        if a.gpu:
+            cmd.append("--gpu")
+        if a.guardar_blend:
+            cmd.append("--guardar-blend")
+        if a.ver:
+            cmd += ["--ver", ",".join(str(s) for s in a.ver)]
+            subprocess.run(cmd, check=True)
+            print(f"[creador] Imágenes de prueba en {frames}/ (ver_*.png)")
+            continue
+        huella = huella_render(ruta_est, lt, a.calidad)
+        marca = os.path.join(frames, "huella.txt")
+        hecho = os.path.exists(marca) and open(marca).read() == huella
+        if hecho:
+            print("[creador] La escena no cambió: reutilizo las imágenes ya renderizadas")
+        else:
+            if os.path.isdir(frames):
+                shutil.rmtree(frames)
+            print("[creador] Renderizando con Blender... (puede tardar)")
+            subprocess.run(cmd, check=True)
+            with open(marca, "w") as f:
+                f.write(huella)
+
+        # 3) Sonido y montaje ---------------------------------------------------
+        plan = guion.planificar(est, lt, idioma)
+        efectos = os.path.join(out, f"_efectos_{idioma}.wav")
+        sonido.generar(plan["sonidos"], lt["duracion_total"], efectos)
         wav = os.path.join(out, f"audio_{idioma}.wav")
+        montar.pista_audio(escenas, mp3s, efectos, wav, a.musica, voz.DESFASE)
         mp4 = os.path.join(out, f"video_{idioma}_{a.calidad}.mp4")
-        montar.subtitulos_ass(lt, idioma, est.TITULO[idioma], ass)
-        montar.pista_audio(lt, idioma, carpeta_voz, wav, a.musica)
-        montar.video_final(carpeta_frames, FPS[a.calidad], wav, ass, mp4,
-                           lt=lt, idioma=idioma, titulo=est.TITULO[idioma],
-                           blender=buscar_blender())
+        montar.video_final(frames, FPS[a.calidad], wav, mp4)
+        os.remove(efectos)
         print(f"[creador] ✅ Video listo: {mp4}")
 
 

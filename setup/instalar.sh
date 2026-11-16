@@ -33,4 +33,4 @@ else
 fi
 ffmpeg -version | head -1
 echo "✅ Listo. Pon tu clave de ElevenLabs en el archivo .env y prueba:"
-echo "   python3 creador/pipeline.py golden_gate"
+echo "   python3 creador/pipeline.py golden_gate --gpu"
