@@ -2,3 +2,4 @@
 salida/
 __pycache__/
 *.blend1
+canal/*.json

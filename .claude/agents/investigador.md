@@ -33,6 +33,12 @@ una frase y por qué interesa ahora. Añade las nuevas a `ideas.md` en "Pendient
    ("ANCLAJE", "227 M") y la fuente de los datos.
 4. Propón también título (<60 caracteres), descripción y 3–5 hashtags.
 
+## Aplica lo que ya sabemos
+
+Antes de proponer ideas o escribir un guion, lee `canal/aprendizajes.md`: ahí está lo
+que los números del canal dicen que funciona y lo que no. Sigue "Qué repetir" y evita
+"Qué evitar", salvo que te pidan expresamente probar algo distinto.
+
 ## Reglas
 
 - Los problemas y soluciones tienen que ser ingeniería real. Si un dato no se puede

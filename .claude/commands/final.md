@@ -16,11 +16,22 @@ Si no se indica nombre, usa la estructura modificada más recientemente en
    debe dejarlo enchufado y sin cerrar la terminal, y de cuánto falta aproximadamente
    (mira cuántas imágenes hay en `salida/<nombre>/frames_alta_es/` frente al total
    que imprime el comando).
-4. Mientras se renderiza, escribe `salida/<nombre>/publicar.md` con, para TikTok,
-   Instagram Reels y YouTube Shorts: título (menos de 60 caracteres, con gancho),
-   descripción de 1–2 frases, 3–5 hashtags, y un comentario para fijar que haga una
-   pregunta. Recuerda marcar el video como contenido generado con IA al subirlo.
-5. Cuando termine, abre el video con `open salida/<nombre>/video_es_alta.mp4`,
-   enseña los textos de `publicar.md` y dile dónde está el archivo.
+4. Mientras se renderiza, escribe `salida/<nombre>/publicar.json` con este formato:
+   `{"titulo": "...", "descripcion": "...", "hashtags": ["...", "..."],
+   "comentario": "...", "tema": "...", "gancho": "..."}`
+   - `titulo`: menos de 60 caracteres, con gancho. `descripcion`: 1–2 frases.
+   - `hashtags`: 3 a 5, sin el símbolo #. `comentario`: una pregunta para fijar.
+   - `tema`: una palabra (puentes, túneles, presas...). `gancho`: el tipo de gancho
+     usado (pregunta, reto, dato sorprendente, error famoso...). Estos dos sirven
+     para analizar después qué funciona, así que sé consistente con los anteriores
+     (mira `canal/publicaciones.json`).
+5. Cuando termine el render, abre el video con `open salida/<nombre>/video_es_alta.mp4`
+   y enseña el título, la descripción y los hashtags.
+6. **Programa la publicación.** Muestra primero qué va a pasar con
+   `python3 creador/publicar.py programar <nombre> --simular` (fecha y redes) y
+   pregunta al usuario si lo programas así o quiere otra fecha. Cuando confirme:
+   `python3 creador/publicar.py programar <nombre>` (añade `--fecha "AAAA-MM-DD HH:MM"`
+   si pidió otra). Si falta configurar Upload-Post, dile que ejecute
+   `python3 creador/publicar.py estado` y explícale lo que salga.
 
 Si el render falla o se interrumpe, explica qué pasó en una frase y vuelve a lanzarlo.

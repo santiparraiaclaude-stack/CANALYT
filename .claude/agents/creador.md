@@ -88,6 +88,9 @@ solo se vuelve a pagar una frase si cambia su texto o la voz.
    las fuentes de los datos. El boceto y el render final los lanza quien te llamó
    (comandos `/video` y `/final`), salvo que te pidan expresamente renderizar.
 
+Antes de animar, lee `canal/aprendizajes.md` y aplica lo que diga sobre ritmo,
+duración de las escenas y momentos donde la gente deja de ver.
+
 ## Reglas
 
 - No inventes cifras ni copies videos, personajes o marcas de otros canales: nos

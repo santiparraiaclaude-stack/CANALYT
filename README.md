@@ -76,6 +76,15 @@ La forma normal de trabajar, desde Claude Code abierto en esta carpeta:
 2. `/final`: cuando el boceto te gusta, hace el render en alta calidad y te deja
    los títulos y hashtags en `salida/<nombre>/publicar.md`.
 
+3. `/final` también **programa la publicación** en TikTok, Instagram, YouTube y
+   Facebook (te pregunta antes de subir nada).
+4. `/analizar`: trae las estadísticas, saca qué funcionó y lo deja escrito en
+   `canal/aprendizajes.md`, que los agentes leen antes de cada video nuevo.
+
+Para publicar hace falta una cuenta en app.upload-post.com con tus redes conectadas
+y, en `.env`, `UPLOAD_POST_API_KEY` y `UPLOAD_POST_PERFIL`. Compruébalo con
+`python3 creador/publicar.py estado`.
+
 También puedes pedirle cosas sueltas al agente:
 
 - *"creador, dame 10 ideas de videos que estén en tendencia"*
@@ -95,5 +104,8 @@ creador/
   sonido.py                   efectos de sonido
   montar.py                   mezcla de audio y mp4 final
   pipeline.py                 lo une todo
+  publicar.py                 programa las publicaciones y lee estadísticas
+canal/aprendizajes.md         lo que funciona (lo actualiza /analizar)
+ideas.md                      lista de ideas
 setup/                        instaladores
 ```
