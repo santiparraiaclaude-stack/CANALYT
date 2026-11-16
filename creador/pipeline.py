@@ -147,4 +147,17 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as e:
+        texto = str(e)
+        if "paid_plan_required" in texto:
+            sys.exit("\n❌ ElevenLabs: esa voz es de la biblioteca y el plan gratis no deja usarla "
+                     "desde aquí.\n   Opciones: (1) pasar al plan Starter en elevenlabs.io -> Subscription, o\n"
+                     "   (2) usar una voz de fábrica: python3 creador/probar_voces.py")
+        if "voice_not_found" in texto:
+            sys.exit("\n❌ ElevenLabs no encuentra esa voz. Añádela a 'My Voices' en elevenlabs.io "
+                     "o elige otra con: python3 creador/probar_voces.py")
+        if "quota_exceeded" in texto:
+            sys.exit("\n❌ Se acabaron los caracteres de tu plan de ElevenLabs este mes.")
+        sys.exit("\n❌ " + texto)
