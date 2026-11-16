@@ -5,22 +5,21 @@ argument-hint: <idea del video, p. ej. "cómo se hace un túnel bajo el mar">
 
 El usuario quiere un video nuevo del canal sobre: **$ARGUMENTS**
 
-Si no hay idea (argumento vacío), busca en la web 5 temas en tendencia que encajen
-con el canal, preséntalos con su gancho en una línea y pregunta cuál quiere. No sigas
-hasta que elija.
+Si no hay idea (argumento vacío), toma las 5 primeras de "Pendientes" en `ideas.md`
+(si hay menos, pide más al agente `investigador`), preséntalas con su gancho en una
+línea y pregunta cuál quiere. No sigas hasta que elija.
 
 Sigue estos pasos en orden. Eres tú quien conduce; el usuario no es técnico, así que
 háblale en español sencillo y no le pidas que ejecute comandos.
 
-1. **Guion y escena (delégalo al agente `creador`).** Pásale la idea y pídele que
-   siga su flujo completo hasta dejar creado y comprobado
-   `creador/estructuras/<nombre>.py`: investigar, guion problema → solución con datos
-   verificados, escena 3D, y revisar el encuadre con `--ver` hasta que todas las
-   escenas se vean bien. Dile que **no** renderice el video y que te devuelva: el
-   nombre de la estructura, el guion en español escena por escena y las fuentes de
-   los datos.
+1. **Guion (agente `investigador`, usa Opus).** Pásale la idea y pídele el guion
+   completo problema → solución con datos verificados, escena por escena.
 2. **Enséñale el guion al usuario** en una lista corta (una línea por escena) y sigue
-   sin esperar respuesta, salvo que el agente haya dejado dudas.
+   sin esperar respuesta, salvo que haya dudas importantes.
+   **Animación (agente `creador`, usa Fable).** Pásale el guion entero y pídele que
+   deje creado y comprobado `creador/estructuras/<nombre>.py`, revisando el encuadre
+   con `--ver` hasta que todas las escenas, avisos y etiquetas se vean completos.
+   Dile que **no** renderice el video y que te devuelva el nombre de la estructura.
 3. **Boceto.** Ejecuta, desde la raíz del proyecto:
    `python3 creador/pipeline.py <nombre> --calidad boceto --gpu`
    (tarda pocos minutos; si supera el límite de tiempo, lánzalo en segundo plano y
@@ -33,6 +32,7 @@ háblale en español sencillo y no le pidas que ejecute comandos.
    que no se entiende, cámaras. Aplica los cambios que pida (tú mismo si son
    pequeños; con el agente `creador` si hay que rehacer escenas), vuelve a generar
    el boceto y vuelve a preguntar. Repite hasta que diga que está bien.
+   Al aprobarlo, mueve la idea a "Hechos" en `ideas.md`.
 6. Cuando lo apruebe, dile que escriba **`/final <nombre>`** (o hazlo tú si te lo
    pide directamente) y recuérdale que el render final tarda más de una hora.
 
