@@ -69,7 +69,14 @@ Está en `.claude/agents/creador.md`. Para tenerlo en todos tus proyectos:
 mkdir -p ~/.claude/agents && cp .claude/agents/creador.md ~/.claude/agents/
 ```
 
-Desde Claude Code, en esta carpeta, pídele cosas como:
+La forma normal de trabajar, desde Claude Code abierto en esta carpeta:
+
+1. `/video cómo se hace un túnel bajo el mar`: investiga, escribe el guion, anima
+   la escena y te abre un **boceto** para revisarlo. Le dices qué cambiar.
+2. `/final`: cuando el boceto te gusta, hace el render en alta calidad y te deja
+   los títulos y hashtags en `salida/<nombre>/publicar.md`.
+
+También puedes pedirle cosas sueltas al agente:
 
 - *"creador, dame 10 ideas de videos que estén en tendencia"*
 - *"creador, haz el video de cómo se hace un túnel bajo el mar"*

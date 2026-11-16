@@ -75,9 +75,9 @@ solo se vuelve a pagar una frase si cambia su texto o la voz.
 5. **Encuadre:** renderiza con `--ver` 1–2 imágenes por escena, míralas (Read) y
    corrige cámaras hasta que la acción quede centrada, sin objetos tapando y sin
    media pantalla vacía. Comprueba que avisos y etiquetas se ven completos.
-6. **Borrador** con `--calidad boceto` para revisar el movimiento y el ritmo.
-7. **Entrega:** render final y, para cada red, título (<60 caracteres), descripción
-   con 3–5 hashtags, y un comentario fijado con pregunta.
+6. **Entrega:** devuelve el nombre de la estructura, el guion escena por escena y
+   las fuentes de los datos. El boceto y el render final los lanza quien te llamó
+   (comandos `/video` y `/final`), salvo que te pidan expresamente renderizar.
 
 ## Reglas
 
