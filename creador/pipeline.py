@@ -55,6 +55,8 @@ def main():
     ap.add_argument("--musica")
     ap.add_argument("--frame", type=int)
     ap.add_argument("--sin-voz", action="store_true")
+    ap.add_argument("--solo-montar", action="store_true",
+                    help="no vuelve a renderizar: usa las imágenes que ya existen")
     a = ap.parse_args()
     voz.cargar_env()
     montar.FUENTE = os.environ.get("CREADOR_FUENTE", montar.FUENTE)
@@ -100,8 +102,11 @@ def main():
         cmd.append("--gpu")
     if a.frame:
         cmd += ["--frame", str(a.frame)]
-    print("[creador] Renderizando con Blender... (puede tardar)")
-    subprocess.run(cmd, check=True)
+    if a.solo_montar and os.path.isdir(carpeta_frames) and os.listdir(carpeta_frames):
+        print("[creador] Usando las imágenes ya renderizadas")
+    else:
+        print("[creador] Renderizando con Blender... (puede tardar)")
+        subprocess.run(cmd, check=True)
     if a.frame:
         print(f"[creador] Imagen de prueba en {carpeta_frames}/prueba_{a.frame:04d}.png")
         return
@@ -113,7 +118,9 @@ def main():
         mp4 = os.path.join(out, f"video_{idioma}_{a.calidad}.mp4")
         montar.subtitulos_ass(lt, idioma, est.TITULO[idioma], ass)
         montar.pista_audio(lt, idioma, carpeta_voz, wav, a.musica)
-        montar.video_final(carpeta_frames, FPS[a.calidad], wav, ass, mp4)
+        montar.video_final(carpeta_frames, FPS[a.calidad], wav, ass, mp4,
+                           lt=lt, idioma=idioma, titulo=est.TITULO[idioma],
+                           blender=buscar_blender())
         print(f"[creador] ✅ Video listo: {mp4}")
 
 

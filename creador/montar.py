@@ -83,12 +83,69 @@ def pista_audio(lt, idioma, carpeta_voz, ruta_wav, musica=None):
             "-map", "[a]", ruta_wav], check=True)
 
 
-def video_final(carpeta_frames, fps, ruta_wav, ruta_ass, ruta_mp4):
-    filtro = f"scale=1080:1920:flags=lanczos,ass='{ruta_ass}'"
-    subprocess.run([
-        "ffmpeg", "-y", "-loglevel", "error",
-        "-framerate", str(fps), "-i", os.path.join(carpeta_frames, "%04d.png"),
-        "-i", ruta_wav, "-vf", filtro,
-        "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
-        ruta_mp4], check=True)
+def ffmpeg_tiene_libass():
+    if os.environ.get("CREADOR_SIN_LIBASS"):
+        return False
+    out = subprocess.run(["ffmpeg", "-hide_banner", "-filters"],
+                         capture_output=True, text=True).stdout
+    return any(l.split()[1:2] == ["ass"] for l in out.splitlines() if l.strip())
+
+
+def textos_en_pantalla(lt, idioma, titulo):
+    """Lista de (texto, estilo, inicio, fin): lo mismo que los subtítulos .ass."""
+    segs = lt["segmentos"]
+    n_pasos = len(segs) - 2
+    paso_txt = "PASO" if idioma == "es" else "STEP"
+    out = []
+    for i, s in enumerate(segs):
+        ini, fin = s["inicio"], s["inicio"] + s["duracion"]
+        texto = s["texto"][idioma]
+        if s["tipo"] == "gancho":
+            out.append((titulo, "titulo", ini, fin))
+            out.append((texto, "texto", ini + 0.3, fin))
+        elif s["tipo"] == "paso":
+            out.append((f"{paso_txt} {i}/{n_pasos}", "paso", ini, fin))
+            out.append((texto, "texto", ini, fin))
+        else:
+            out.append((texto, "final", ini, fin + 0.5))
+    return out
+
+
+def video_final(carpeta_frames, fps, ruta_wav, ruta_ass, ruta_mp4,
+                lt=None, idioma="es", titulo="", blender=None):
+    entrada = ["-framerate", str(fps), "-i", os.path.join(carpeta_frames, "%04d.png"),
+               "-i", ruta_wav]
+    salida = ["-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+              "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", ruta_mp4]
+
+    if ffmpeg_tiene_libass():
+        filtro = f"scale=1080:1920:flags=lanczos,ass='{ruta_ass}'"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *entrada, "-vf", filtro, *salida],
+                       check=True)
+        return
+
+    # Plan B: textos dibujados con Blender y superpuestos con overlay
+    print("[creador] ffmpeg sin libass: dibujando los textos con Blender")
+    carpeta = os.path.join(os.path.dirname(ruta_mp4), f"textos_{idioma}")
+    os.makedirs(carpeta, exist_ok=True)
+    textos = textos_en_pantalla(lt, idioma, titulo)
+    trabajos = [{"texto": t, "estilo": e, "archivo": os.path.join(carpeta, f"{k:02d}.png")}
+                for k, (t, e, _, _) in enumerate(textos)]
+    ruta_json = os.path.join(carpeta, "textos.json")
+    import json
+    with open(ruta_json, "w", encoding="utf-8") as f:
+        json.dump(trabajos, f, ensure_ascii=False)
+    aqui = os.path.dirname(os.path.abspath(__file__))
+    subprocess.run([blender, "-b", "--factory-startup",
+                    "-P", os.path.join(aqui, "blender_textos.py"), "--", ruta_json],
+                   check=True, stdout=subprocess.DEVNULL)
+
+    for t in trabajos:
+        entrada += ["-loop", "1", "-framerate", str(fps), "-i", t["archivo"]]
+    cadena = ["[0:v]scale=1080:1920:flags=lanczos[v0]"]
+    for k, (_, _, ini, fin) in enumerate(textos):
+        cadena.append(f"[v{k}][{k + 2}:v]overlay=0:0:shortest=1:"
+                      f"enable='between(t,{ini:.3f},{fin:.3f})'[v{k + 1}]")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *entrada,
+                    "-filter_complex", ";".join(cadena), "-map", f"[v{len(textos)}]",
+                    "-map", "1:a", *salida], check=True)
