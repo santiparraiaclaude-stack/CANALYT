@@ -7,7 +7,10 @@ BLENDER_VER="4.2.3"
 if [[ "$(uname)" == "Darwin" ]]; then
   command -v brew >/dev/null || { echo "Instala Homebrew primero: https://brew.sh"; exit 1; }
   brew install ffmpeg python@3.12
-  brew install --cask blender
+  if [[ ! -d /Applications/Blender.app ]]; then
+    brew install --cask blender@lts || brew install --cask blender
+  fi
+  echo "Blender: /Applications/Blender.app/Contents/MacOS/Blender"
 else
   sudo apt-get update
   sudo apt-get install -y ffmpeg python3 curl xz-utils libxi6 libxkbcommon0 libxrender1 libsm6 libgl1
@@ -23,7 +26,11 @@ fi
 
 [[ -f .env ]] || cp .env.example .env
 echo
-blender --version | head -1 || true
+if [[ -x /Applications/Blender.app/Contents/MacOS/Blender ]]; then
+  /Applications/Blender.app/Contents/MacOS/Blender --version | head -1
+else
+  blender --version | head -1 || true
+fi
 ffmpeg -version | head -1
 echo "✅ Listo. Pon tu clave de ElevenLabs en el archivo .env y prueba:"
 echo "   python3 creador/pipeline.py golden_gate"

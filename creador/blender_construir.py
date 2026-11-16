@@ -117,11 +117,21 @@ def crear_pieza(p, indice):
     return obj, centro.copy()
 
 
-def poner_interp(obj, interp, easing):
+def fcurves_de(obj):
+    """F-curves de un objeto, compatible con Blender 4.2 y 4.4/5.x."""
     ad = obj.animation_data
     if not ad or not ad.action:
-        return
-    for fc in ad.action.fcurves:
+        return []
+    try:
+        return list(ad.action.fcurves)
+    except AttributeError:   # Blender 5: acciones por capas
+        from bpy_extras import anim_utils
+        cb = anim_utils.action_get_channelbag_for_slot(ad.action, ad.action_slot)
+        return list(cb.fcurves) if cb else []
+
+
+def poner_interp(obj, interp, easing):
+    for fc in fcurves_de(obj):
         if fc.data_path in ("location", "scale"):
             for kp in fc.keyframe_points:
                 kp.interpolation = interp
@@ -180,7 +190,7 @@ def crear_camara(cfg, total_frames):
     pivote.keyframe_insert("rotation_euler", frame=1)
     pivote.rotation_euler = (0, 0, math.radians(cfg["angulo_fin"]))
     pivote.keyframe_insert("rotation_euler", frame=total_frames)
-    for fc in pivote.animation_data.action.fcurves:
+    for fc in fcurves_de(pivote):
         for kp in fc.keyframe_points:
             kp.interpolation = "SINE"
             kp.easing = "EASE_IN_OUT"
@@ -217,8 +227,11 @@ def configurar_render(calidad, usar_gpu, salida, fps):
     s.render.fps = fps
     s.render.image_settings.file_format = "PNG"
     s.render.filepath = os.path.join(os.path.abspath(salida), "")
-    s.view_settings.view_transform = "AgX"
-    s.view_settings.look = "AgX - Medium High Contrast"
+    try:
+        s.view_settings.view_transform = "AgX"
+        s.view_settings.look = "AgX - Medium High Contrast"
+    except TypeError:
+        pass
     s.cycles.device = "CPU"
     if usar_gpu:
         prefs = bpy.context.preferences.addons["cycles"].preferences
