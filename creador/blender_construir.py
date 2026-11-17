@@ -723,12 +723,16 @@ def confeti(c):
 
 # --- Estilos visuales -----------------------------------------------------------------
 
-ESTILOS = {
-    "maqueta":    "colores vivos y sombras limpias (el de siempre)",
-    "caricatura": "contorno negro como un cómic, colores planos",
-    "arcilla":    "plastilina mate, luz cálida y sombras suaves",
-    "plano":      "plano de ingeniero: fondo azul y líneas blancas",
-}
+RUTA_ESTILOS = os.path.join(os.path.dirname(AQUI), "canal", "estilos.json")
+
+
+def cargar_estilos():
+    if os.path.exists(RUTA_ESTILOS):
+        with open(RUTA_ESTILOS, encoding="utf-8") as f:
+            return json.load(f).get("estilos", {})
+    return {"maqueta": {}}
+
+
 SIN_CONTORNO = ("txt", "aviso", "etiqueta", "confeti", "polvo")
 
 
@@ -774,14 +778,24 @@ def contorno(color, grosor_1080):
 
 
 def aplicar_estilo(nombre):
-    if nombre in (None, "", "maqueta"):
+    """Aplica un estilo de canal/estilos.json. Ajustes posibles (todos opcionales):
+
+    materiales: rugosidad, brillo, mezcla {color, cantidad} (tiñe todos los colores),
+                color_fijo (todo de un color), color_agua
+    contorno:   color, grosor (líneas tipo cómic; grosor en píxeles a 1080 de ancho)
+    cielo:      color, fuerza
+    sol:        energia, angulo (grados; más = sombras más suaves), color
+    """
+    estilos = cargar_estilos()
+    if not nombre or nombre not in estilos:
+        if nombre and nombre != "maqueta":
+            print(f"[creador] AVISO: estilo «{nombre}» no existe; uso maqueta. Hay: {', '.join(estilos)}")
         return
-    if nombre not in ESTILOS:
-        print(f"[creador] AVISO: estilo «{nombre}» desconocido; uso maqueta. Hay: {', '.join(ESTILOS)}")
-        return
+    e = estilos[nombre]
     s = bpy.context.scene
     sol = bpy.data.objects.get("sol")
     fondo = s.world.node_tree.nodes["Background"]
+    mat = e.get("materiales", {})
     for m in bpy.data.materials:
         b = _bsdf(m)
         if not b:
@@ -789,37 +803,33 @@ def aplicar_estilo(nombre):
         rug = _entrada(b, "Roughness")
         brillo = _entrada(b, "Specular IOR Level", "Specular")
         color = _entrada(b, "Base Color")
-        if nombre in ("caricatura", "arcilla"):
-            rug.default_value = 1.0
-            if brillo:
-                brillo.default_value = 0.0 if nombre == "caricatura" else 0.15
-        if nombre == "arcilla" and color and not color.is_linked:
-            c = color.default_value
-            color.default_value = (c[0] * 0.88 + 0.08, c[1] * 0.88 + 0.07, c[2] * 0.88 + 0.05, 1)
-        if nombre == "plano" and color:
+        if "rugosidad" in mat and rug:
+            rug.default_value = mat["rugosidad"]
+        if "brillo" in mat and brillo:
+            brillo.default_value = mat["brillo"]
+        if "color_fijo" in mat and color:
             for enlace in list(color.links):
                 m.node_tree.links.remove(enlace)
-            agua = m.name == "agua"
-            color.default_value = (0.02, 0.09, 0.22, 1) if agua else (0.05, 0.2, 0.48, 1)
-            rug.default_value = 1.0
-            if brillo:
-                brillo.default_value = 0.0
-    if nombre == "caricatura":
-        contorno((0.0, 0.0, 0.0), 3.0)
-        fondo.inputs["Strength"].default_value = 1.25
-        if sol:
-            sol.data.energy = 3.6
-    elif nombre == "arcilla":
-        fondo.inputs["Color"].default_value = (0.55, 0.72, 0.95, 1)
-        if sol:
-            sol.data.angle = math.radians(35)
-            sol.data.color = (1.0, 0.92, 0.82)
-    elif nombre == "plano":
-        contorno((0.92, 0.96, 1.0), 2.4)
-        fondo.inputs["Color"].default_value = (0.02, 0.08, 0.2, 1)
-        fondo.inputs["Strength"].default_value = 1.0
-        if sol:
-            sol.data.energy = 1.5
+            fijo = mat.get("color_agua", mat["color_fijo"]) if m.name == "agua" else mat["color_fijo"]
+            color.default_value = (*fijo, 1)
+        elif "mezcla" in mat and color and not color.is_linked:
+            c, t, k = color.default_value, mat["mezcla"]["color"], mat["mezcla"]["cantidad"]
+            color.default_value = tuple(c[i] * (1 - k) + t[i] * k for i in range(3)) + (1,)
+    if "contorno" in e:
+        contorno(tuple(e["contorno"].get("color", (0, 0, 0))), e["contorno"].get("grosor", 3.0))
+    cielo = e.get("cielo", {})
+    if "color" in cielo:
+        fondo.inputs["Color"].default_value = (*cielo["color"], 1)
+    if "fuerza" in cielo:
+        fondo.inputs["Strength"].default_value = cielo["fuerza"]
+    luz = e.get("sol", {})
+    if sol:
+        if "energia" in luz:
+            sol.data.energy = luz["energia"]
+        if "angulo" in luz:
+            sol.data.angle = math.radians(luz["angulo"])
+        if "color" in luz:
+            sol.data.color = tuple(luz["color"])
     print(f"[creador] Estilo: {nombre}")
 
 

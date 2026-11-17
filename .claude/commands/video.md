@@ -5,11 +5,11 @@ argument-hint: <idea del video, p. ej. "cómo se hace un túnel bajo el mar">
 
 El usuario quiere un video nuevo del canal sobre: **$ARGUMENTS**
 
-Si en la petición aparece un estilo visual ("estilo caricatura", "como plastilina",
-"tipo plano de ingeniero"...), tradúcelo a uno de los estilos que existen
-(`maqueta`, `caricatura`, `arcilla`, `plano`) y pásaselo al agente `creador` para que lo
-fije como `ESTILO` en la estructura. Si pide un estilo que no existe, dile cuáles hay
-y usa el más parecido.
+Si en la petición aparece un estilo visual ("estilo caricatura", "como plastilina"...),
+mira los estilos que existen en `canal/estilos.json`. Si hay uno que encaja, pásaselo al
+agente `creador` para que lo fije como `ESTILO` en ese video. Si no existe ninguno
+parecido, ofrece crearlo con `/estilo` antes de animar. Si no pide estilo, se usa el
+asignado a su tema (o el de por defecto) sin preguntar.
 
 Si no hay idea (argumento vacío), toma las 5 primeras de "Pendientes" en `ideas.md`
 (si hay menos, pide más al agente `investigador`), preséntalas con su gancho en una

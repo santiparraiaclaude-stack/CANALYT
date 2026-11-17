@@ -106,9 +106,10 @@ solo con voz para eso).
 
 ## Estilos y modelos 3D (opcional)
 
-Estilos: `maqueta` (por defecto), `caricatura`, `arcilla` y `plano`. Para todo el canal,
-pon en `.env` por ejemplo `CANAL_ESTILO=caricatura`. Para un video concreto, pídelo en la
-idea (`/video cómo se hace un túnel, estilo arcilla`).
+Estilos: `maqueta` (por defecto), `caricatura`, `arcilla` y `plano`, guardados en
+`canal/estilos.json`. Con `/estilo` en Claude puedes crear estilos nuevos ("quiero un
+estilo neón") y asignar uno a cada nicho ("los videos de tecnología en estilo plano").
+Para un video suelto, pídelo en la idea (`/video cómo se hace un túnel, estilo arcilla`).
 
 Modelos reales (camiones, personajes, árboles...): descarga packs gratis de Kenney a
 `modelos/descargas/` y ejecuta `python3 creador/banco_modelos.py`. Detalles en

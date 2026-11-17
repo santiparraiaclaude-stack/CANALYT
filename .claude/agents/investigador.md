@@ -58,7 +58,10 @@ una frase y por qué interesa ahora. Añade las nuevas a `ideas.md` en "Pendient
    construye, qué amenaza entra en escena y cómo se ve el fallo, con su aviso) y **el
    arreglo** (paso 4: qué piezas aparecen, y la etiqueta con el nombre de la pieza).
    Indica el texto de voz de cada escena y la fuente de cada dato.
-4. Propón también título (<60 caracteres), descripción y 3–5 hashtags.
+4. Propón también título (<60 caracteres), descripción y 3–5 hashtags, y el **tema**
+   del video en una palabra en minúsculas (puentes, tuneles, tecnologia, mineria...),
+   reutilizando los temas que ya existan en `canal/estilos.json` y
+   `canal/publicaciones.json` cuando encaje.
 
 ## Aplica lo que ya sabemos
 

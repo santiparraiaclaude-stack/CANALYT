@@ -1,0 +1,30 @@
+{
+ "_ayuda": "defecto: estilo de los videos sin tema asignado. por_tema: tema -> estilo (el tema es TEMA en la estructura del video). estilos: cada estilo con sus ajustes; los colores van de 0 a 1 (rojo, verde, azul). Para crear o cambiar estilos usa /estilo en Claude.",
+ "defecto": "maqueta",
+ "por_tema": {},
+ "estilos": {
+  "maqueta": {
+   "descripcion": "colores vivos y sombras limpias (el de siempre)"
+  },
+  "caricatura": {
+   "descripcion": "contorno negro como un cómic, colores planos",
+   "materiales": {"rugosidad": 1.0, "brillo": 0.0},
+   "contorno": {"color": [0, 0, 0], "grosor": 3.0},
+   "cielo": {"fuerza": 1.25},
+   "sol": {"energia": 3.6}
+  },
+  "arcilla": {
+   "descripcion": "plastilina mate, luz cálida y sombras suaves",
+   "materiales": {"rugosidad": 1.0, "brillo": 0.15, "mezcla": {"color": [0.67, 0.58, 0.42], "cantidad": 0.12}},
+   "cielo": {"color": [0.55, 0.72, 0.95]},
+   "sol": {"angulo": 35, "color": [1.0, 0.92, 0.82]}
+  },
+  "plano": {
+   "descripcion": "plano de ingeniero: fondo azul y líneas blancas",
+   "materiales": {"rugosidad": 1.0, "brillo": 0.0, "color_fijo": [0.05, 0.2, 0.48], "color_agua": [0.02, 0.09, 0.22]},
+   "contorno": {"color": [0.92, 0.96, 1.0], "grosor": 2.4},
+   "cielo": {"color": [0.02, 0.08, 0.2], "fuerza": 1.0},
+   "sol": {"energia": 1.5}
+  }
+ }
+}

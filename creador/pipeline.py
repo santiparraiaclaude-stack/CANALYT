@@ -53,10 +53,24 @@ def cargar(nombre):
     return mod, ruta
 
 
+def elegir_estilo(forzado, est):
+    """--estilo > ESTILO del video > estilo de su TEMA > defecto del canal (canal/estilos.json)."""
+    ruta = os.path.join(RAIZ, "canal", "estilos.json")
+    conf = {}
+    if os.path.exists(ruta):
+        with open(ruta, encoding="utf-8") as f:
+            conf = json.load(f)
+    tema = (getattr(est, "TEMA", "") or "").lower()
+    return (forzado or getattr(est, "ESTILO", None) or conf.get("por_tema", {}).get(tema)
+            or conf.get("defecto") or os.environ.get("CANAL_ESTILO") or "maqueta")
+
+
 def huella_render(ruta_est, lt, calidad):
     h = hashlib.sha1()
     for ruta in (ruta_est, os.path.join(AQUI, "piezas.py"), os.path.join(AQUI, "guion.py"),
-                 os.path.join(AQUI, "blender_construir.py")):
+                 os.path.join(AQUI, "blender_construir.py"), os.path.join(RAIZ, "canal", "estilos.json")):
+        if not os.path.exists(ruta):
+            continue
         with open(ruta, "rb") as f:
             h.update(f.read())
     h.update(json.dumps(lt, sort_keys=True).encode())
@@ -106,8 +120,7 @@ def main():
         os.environ["ELEVENLABS_API_KEY"] = ""
 
     est, ruta_est = cargar(a.estructura)
-    # Prioridad: --estilo > ESTILO del video > CANAL_ESTILO del .env (estilo del canal)
-    estilo = a.estilo or getattr(est, "ESTILO", None) or os.environ.get("CANAL_ESTILO") or "maqueta"
+    estilo = elegir_estilo(a.estilo, est)
     print(f"[creador] Estilo visual: {estilo}")
     out = os.path.join(RAIZ, "salida", a.estructura)
     os.makedirs(out, exist_ok=True)

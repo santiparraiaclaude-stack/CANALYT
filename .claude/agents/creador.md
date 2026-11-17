@@ -48,13 +48,13 @@ incompleta.
 
 ### Estilo visual y modelos descargados
 
-- **Estilo:** el canal tiene un estilo por defecto (`CANAL_ESTILO` en `.env`) que se
-  aplica a todos los videos. Pon `ESTILO = "..."` en una estructura **solo** si el
-  usuario pide un estilo distinto para ese video concreto. Estilos que existen:
-  `maqueta` (por defecto, colores vivos), `caricatura` (contorno negro de cómic),
-  `arcilla` (plastilina mate, luz cálida) o `plano` (plano de ingeniero azul con
-  líneas blancas). Si el usuario pide un estilo, ponlo ahí. También se puede forzar
-  al renderizar con `--estilo <nombre>`.
+- **Tema y estilo:** pon siempre `TEMA = "..."` arriba de la estructura, con el tema o
+  nicho del video en una palabra y en minúsculas (puentes, tuneles, tecnologia,
+  mineria...; el mismo que irá en `publicar.json`). El estilo visual sale solo de
+  `canal/estilos.json` según ese tema (o el de por defecto). Pon `ESTILO = "..."` en la
+  estructura **solo** si el usuario pide un estilo distinto para ese video concreto, y
+  usa únicamente estilos que existan en ese archivo. Para crear estilos nuevos o
+  asignarlos a temas está el comando `/estilo`.
 - **Modelos 3D** (camiones, grúas, personajes, edificios, árboles): mira qué hay con
   `python3 creador/banco_modelos.py --lista` (o `--lista truck`, `--lista tree`...).
   Úsalos con `modelo("pack/nombre", pos=(x, y, z_suelo), largo=4, rumbo=90, anim="caer")`
