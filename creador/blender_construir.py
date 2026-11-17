@@ -57,6 +57,7 @@ def args():
     ap.add_argument("--gpu", action="store_true")
     ap.add_argument("--ver")
     ap.add_argument("--guardar-blend", action="store_true")
+    ap.add_argument("--estilo", default="maqueta")
     return ap.parse_args(argv)
 
 
@@ -102,6 +103,12 @@ def clave(obj, ruta, frame, suave=None):
 
 
 def visible_entre(obj, f0, f1=None):
+    for hijo in obj.children_recursive:
+        _visible(hijo, f0, f1)
+    _visible(obj, f0, f1)
+
+
+def _visible(obj, f0, f1=None):
     obj.hide_render = True
     obj.keyframe_insert("hide_render", frame=max(0, f0 - 1))
     obj.hide_render = False
@@ -221,7 +228,97 @@ def grupo(nombre, pivote):
     return grupos[nombre]
 
 
+# --- Modelos 3D descargados (creador/banco_modelos.py) ---------------------------
+
+_biblioteca = {}
+_catalogo = []
+
+
+def catalogo_modelos():
+    if not _catalogo:
+        ruta = os.path.join(os.path.dirname(AQUI), "modelos", "catalogo.json")
+        if os.path.exists(ruta):
+            with open(ruta, encoding="utf-8") as f:
+                _catalogo.extend(json.load(f))
+    return _catalogo
+
+
+def importar(id_modelo):
+    """Importa un modelo una sola vez y lo guarda oculto para hacer copias."""
+    if id_modelo in _biblioteca:
+        return _biblioteca[id_modelo]
+    item = next((m for m in catalogo_modelos() if m["id"] == id_modelo), None)
+    if item is None:
+        print(f"[creador] AVISO: no existe el modelo «{id_modelo}» "
+              "(mira python3 creador/banco_modelos.py --lista)")
+        _biblioteca[id_modelo] = None
+        return None
+    ruta = os.path.join(os.path.dirname(AQUI), item["archivo"])
+    antes = set(bpy.data.objects)
+    ext = os.path.splitext(ruta)[1].lower()
+    try:
+        if ext in (".glb", ".gltf"):
+            bpy.ops.import_scene.gltf(filepath=ruta)
+        elif ext == ".fbx":
+            bpy.ops.import_scene.fbx(filepath=ruta)
+        else:
+            bpy.ops.wm.obj_import(filepath=ruta)
+    except Exception as e:
+        print(f"[creador] AVISO: no pude importar {ruta}: {e}")
+        _biblioteca[id_modelo] = None
+        return None
+    nuevos = [o for o in bpy.data.objects if o not in antes]
+    bpy.context.view_layer.update()
+    mallas = [(o.data, o.matrix_world.copy(), [m for m in o.data.materials])
+              for o in nuevos if o.type == "MESH"]
+    puntos = [mw @ Vector(v.co) for datos, mw, _ in mallas for v in datos.vertices]
+    for o in nuevos:
+        bpy.data.objects.remove(o)
+    if not puntos:
+        _biblioteca[id_modelo] = None
+        return None
+    mn = Vector((min(p.x for p in puntos), min(p.y for p in puntos), min(p.z for p in puntos)))
+    mx = Vector((max(p.x for p in puntos), max(p.y for p in puntos), max(p.z for p in puntos)))
+    _biblioteca[id_modelo] = {"mallas": mallas, "min": mn, "max": mx}
+    return _biblioteca[id_modelo]
+
+
+def crear_modelo(p):
+    lib = importar(p["modelo"])
+    raiz = enlazar(bpy.data.objects.new(f"modelo_{_n_pieza[0]:04d}", None))
+    if lib is None:     # sin modelo: queda vacío y la escena sigue funcionando
+        return raiz, (1, 1, 1)
+    tam = lib["max"] - lib["min"]
+    if p.get("largo"):
+        esc = p["largo"] / max(tam.x, tam.y, 1e-6)
+    elif p.get("alto"):
+        esc = p["alto"] / max(tam.z, 1e-6)
+    else:
+        esc = p.get("escala", 1.0)
+    base = Vector(((lib["min"].x + lib["max"].x) / 2, (lib["min"].y + lib["max"].y) / 2, lib["min"].z))
+    for datos, mw, _ in lib["mallas"]:
+        hijo = enlazar(bpy.data.objects.new(raiz.name + "_p", datos))
+        hijo.parent = raiz
+        hijo.matrix_parent_inverse = Matrix.Identity(4)
+        hijo.matrix_basis = Matrix.Translation(-base) @ mw
+    raiz.scale = (esc, esc, esc)
+    return raiz, (tam.x * esc, tam.y * esc, tam.z * esc)
+
+
 def crear_pieza(p):
+    if p["tipo"] == "modelo":
+        _n_pieza[0] += 1
+        obj, dims = crear_modelo(p)
+        p["dim"] = list(dims)
+        rot = Euler([math.radians(a) for a in p["rot"]], "XYZ")
+        obj.rotation_euler = rot
+        centro = Vector(p["pos"])          # en los modelos, pos = punto del suelo bajo el modelo
+        obj.location = centro
+        if p.get("id"):
+            g = grupo(p["id"], p.get("pivote", p["pos"]))
+            obj.parent = g["obj"]
+            obj.matrix_parent_inverse = Matrix.Translation(-Vector(g["obj"].location))
+        return obj, centro.copy(), rot
     dx, dy, dz = p["dim"]
     malla = malla_base(p["tipo"]).copy()
     base = 0.5 if p["anim"] == "crecer" else 0.0   # origen en la base
@@ -272,6 +369,7 @@ def polvo(pos, tam, f):
 
 
 def animar_entrada(obj, loc, rot, p, t):
+    base_esc = Vector(obj.scale)
     anim = p["anim"]
     if anim == "ninguna" or t is None:
         return
@@ -291,12 +389,12 @@ def animar_entrada(obj, loc, rot, p, t):
         clave(obj, "rotation_euler", f0 + max(2, (f1 - f0) // 3))
         tam = max(p["dim"])
         if tam >= 1.5 and not p.get("id"):
-            base = loc - Vector((0, 0, p["dim"][2] / 2))
+            base = loc if p["tipo"] == "modelo" else loc - Vector((0, 0, p["dim"][2] / 2))
             polvo(base, min(0.9, 0.22 * tam), f0 + round((f1 - f0) * 0.36))
     elif anim == "crecer":
-        obj.scale = (1, 1, 0.001)
+        obj.scale = (base_esc.x, base_esc.y, base_esc.z * 0.001)
         clave(obj, "scale", f0, "atras")
-        obj.scale = (1, 1, 1)
+        obj.scale = base_esc
         clave(obj, "scale", f1)
     elif anim == "subir":
         obj.location = loc - Vector((0, 0, p.get("desde_abajo", 7.0)))
@@ -304,9 +402,9 @@ def animar_entrada(obj, loc, rot, p, t):
         obj.location = loc
         clave(obj, "location", f1)
     elif anim == "aparecer":
-        obj.scale = (0.001,) * 3
+        obj.scale = base_esc * 0.001
         clave(obj, "scale", f0, "atras")
-        obj.scale = (1, 1, 1)
+        obj.scale = base_esc
         clave(obj, "scale", f1)
 
 
@@ -623,6 +721,108 @@ def confeti(c):
         clave(o, "rotation_euler", fa + round(3.6 * FPS))
 
 
+# --- Estilos visuales -----------------------------------------------------------------
+
+ESTILOS = {
+    "maqueta":    "colores vivos y sombras limpias (el de siempre)",
+    "caricatura": "contorno negro como un cómic, colores planos",
+    "arcilla":    "plastilina mate, luz cálida y sombras suaves",
+    "plano":      "plano de ingeniero: fondo azul y líneas blancas",
+}
+SIN_CONTORNO = ("txt", "aviso", "etiqueta", "confeti", "polvo")
+
+
+def _bsdf(m):
+    if not m or not m.node_tree or m.name.startswith("luz_"):
+        return None
+    return next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+
+
+def _entrada(nodo, *nombres):
+    for n in nombres:
+        if n in nodo.inputs:
+            return nodo.inputs[n]
+    return None
+
+
+def contorno(color, grosor_1080):
+    s = bpy.context.scene
+    s.render.use_freestyle = True
+    s.render.line_thickness_mode = "ABSOLUTE"
+    grosor = grosor_1080 * s.render.resolution_x / 1080
+    capa = bpy.context.view_layer
+    capa.use_freestyle = True
+    ajustes = capa.freestyle_settings
+    linea = ajustes.linesets[0] if len(ajustes.linesets) else ajustes.linesets.new("contorno")
+    linea.select_by_visibility = True
+    linea.select_by_edge_types = True
+    linea.select_silhouette = True
+    linea.select_border = True
+    linea.select_crease = True
+    sin = bpy.data.collections.new("sin_contorno")
+    s.collection.children.link(sin)
+    for o in s.objects:
+        if o.name.startswith(SIN_CONTORNO):
+            sin.objects.link(o)
+    linea.select_by_collection = True
+    linea.collection = sin
+    linea.collection_negation = "EXCLUSIVE"
+    if linea.linestyle is None:
+        linea.linestyle = bpy.data.linestyles.new("contorno")
+    linea.linestyle.color = color
+    linea.linestyle.thickness = grosor
+
+
+def aplicar_estilo(nombre):
+    if nombre in (None, "", "maqueta"):
+        return
+    if nombre not in ESTILOS:
+        print(f"[creador] AVISO: estilo «{nombre}» desconocido; uso maqueta. Hay: {', '.join(ESTILOS)}")
+        return
+    s = bpy.context.scene
+    sol = bpy.data.objects.get("sol")
+    fondo = s.world.node_tree.nodes["Background"]
+    for m in bpy.data.materials:
+        b = _bsdf(m)
+        if not b:
+            continue
+        rug = _entrada(b, "Roughness")
+        brillo = _entrada(b, "Specular IOR Level", "Specular")
+        color = _entrada(b, "Base Color")
+        if nombre in ("caricatura", "arcilla"):
+            rug.default_value = 1.0
+            if brillo:
+                brillo.default_value = 0.0 if nombre == "caricatura" else 0.15
+        if nombre == "arcilla" and color and not color.is_linked:
+            c = color.default_value
+            color.default_value = (c[0] * 0.88 + 0.08, c[1] * 0.88 + 0.07, c[2] * 0.88 + 0.05, 1)
+        if nombre == "plano" and color:
+            for enlace in list(color.links):
+                m.node_tree.links.remove(enlace)
+            agua = m.name == "agua"
+            color.default_value = (0.02, 0.09, 0.22, 1) if agua else (0.05, 0.2, 0.48, 1)
+            rug.default_value = 1.0
+            if brillo:
+                brillo.default_value = 0.0
+    if nombre == "caricatura":
+        contorno((0.0, 0.0, 0.0), 3.0)
+        fondo.inputs["Strength"].default_value = 1.25
+        if sol:
+            sol.data.energy = 3.6
+    elif nombre == "arcilla":
+        fondo.inputs["Color"].default_value = (0.55, 0.72, 0.95, 1)
+        if sol:
+            sol.data.angle = math.radians(35)
+            sol.data.color = (1.0, 0.92, 0.82)
+    elif nombre == "plano":
+        contorno((0.92, 0.96, 1.0), 2.4)
+        fondo.inputs["Color"].default_value = (0.02, 0.08, 0.2, 1)
+        fondo.inputs["Strength"].default_value = 1.0
+        if sol:
+            sol.data.energy = 1.5
+    print(f"[creador] Estilo: {nombre}")
+
+
 # --- Escena, luz y render -----------------------------------------------------------
 
 def crear_luces():
@@ -715,6 +915,8 @@ def main():
         print("[creador] AVISO:", aviso)
     if plan["confeti"]:
         confeti(plan["confeti"])
+
+    aplicar_estilo(a.estilo)
 
     total = math.ceil(plan["total"] * FPS)
     s = bpy.context.scene

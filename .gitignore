@@ -5,3 +5,5 @@ __pycache__/
 canal/*.json
 sonidos/*
 !sonidos/LEEME.md
+modelos/*
+!modelos/LEEME.md

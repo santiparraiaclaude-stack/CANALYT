@@ -46,6 +46,25 @@ en pantalla, en la misma escena en que se dice:
 Si una escena tiene "¿Y si...?" en la voz pero no se ve la amenaza ni el fallo, está
 incompleta.
 
+### Estilo visual y modelos descargados
+
+- **Estilo:** cada estructura puede fijar `ESTILO = "..."` arriba del archivo:
+  `maqueta` (por defecto, colores vivos), `caricatura` (contorno negro de cómic),
+  `arcilla` (plastilina mate, luz cálida) o `plano` (plano de ingeniero azul con
+  líneas blancas). Si el usuario pide un estilo, ponlo ahí. También se puede forzar
+  al renderizar con `--estilo <nombre>`.
+- **Modelos 3D** (camiones, grúas, personajes, edificios, árboles): mira qué hay con
+  `python3 creador/banco_modelos.py --lista` (o `--lista truck`, `--lista tree`...).
+  Úsalos con `modelo("pack/nombre", pos=(x, y, z_suelo), largo=4, rumbo=90, anim="caer")`
+  (`pos` es el punto del suelo bajo el modelo; `largo` o `alto` fijan su tamaño en la
+  escena; admite `id`, `t`, `pivote` como cualquier pieza, así que se puede mover con
+  acciones: un camión que cruza el puente es `grupo("camion", [modelo(...)])` + una
+  acción `mover`). Prefiere un modelo real a uno hecho con cubos cuando exista: los
+  vehículos, personajes y árboles quedan mucho mejor. Si el catálogo está vacío, usa
+  los prefabricados de `piezas.py` (`auto`, `camion`, `barco`, `arbol`) y dile al
+  usuario que puede descargar packs (instrucciones en `modelos/LEEME.md`).
+- Si sale `[creador] AVISO: no existe el modelo`, el id está mal: búscalo en la lista.
+
 ## Cómo está hecho el sistema (`creador/`)
 
 - `piezas.py`: piezas (`cubo`, `cilindro`, `esfera`, `cono`, `segmento`, `cadena`,

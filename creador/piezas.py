@@ -4,7 +4,7 @@ Python puro (no importa Blender): las estructuras se pueden escribir y
 revisar sin abrir Blender.
 
 Cada pieza es un diccionario:
-    tipo   : "cubo" | "cilindro" | "esfera" | "cono"
+    tipo   : "cubo" | "cilindro" | "esfera" | "cono" | "modelo" (ver modelo())
     pos    : centro de la pieza (x, y, z)
     dim    : tamaño total (ancho_x, fondo_y, alto_z)
     rot    : rotación en grados (x, y, z)
@@ -128,6 +128,23 @@ def con(piezas, **campos):
     for p in piezas:
         p.update(campos)
     return piezas
+
+
+def modelo(id_modelo, pos, largo=None, alto=None, escala=1.0, rumbo=0, anim="caer", **extra):
+    """Un modelo 3D descargado (ver `python3 creador/banco_modelos.py --lista`).
+
+    pos   : punto del suelo bajo el modelo (centro de su base)
+    largo : tamaño de su lado más largo en la escena (o alto: su altura); si no, escala
+    rumbo : giro en grados alrededor del eje vertical
+    """
+    p = {"tipo": "modelo", "modelo": id_modelo, "pos": list(pos), "dim": [0, 0, 0],
+         "rot": [0, 0, rumbo], "color": None, "anim": anim, "escala": escala}
+    if largo:
+        p["largo"] = largo
+    if alto:
+        p["alto"] = alto
+    p.update({k: v for k, v in extra.items() if v is not None})
+    return p
 
 
 # --- Objetos prefabricados ---------------------------------------------------

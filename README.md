@@ -104,6 +104,16 @@ video los usa en vez de los sintetizados. Cada render deja también
 skill **Real SFX**, por si quieres sonorizar con ella (`--sin-efectos` saca el video
 solo con voz para eso).
 
+## Estilos y modelos 3D (opcional)
+
+Estilos: `maqueta` (por defecto), `caricatura`, `arcilla` y `plano`. Pídelo en la idea
+(`/video cómo se hace un túnel, estilo caricatura`) o al renderizar con
+`--estilo caricatura`.
+
+Modelos reales (camiones, personajes, árboles...): descarga packs gratis de Kenney a
+`modelos/descargas/` y ejecuta `python3 creador/banco_modelos.py`. Detalles en
+`modelos/LEEME.md`.
+
 ## Estructura del proyecto
 
 ```
@@ -117,6 +127,7 @@ creador/
   probar_voces.py             muestras para elegir la voz
   sonido.py                   efectos de sonido (reales si hay banco, si no sintetizados)
   banco_sonidos.py            descarga sonidos CC0 de Openverse a sonidos/
+  banco_modelos.py            prepara los packs de modelos 3D descargados
   montar.py                   mezcla de audio y mp4 final
   pipeline.py                 lo une todo
   publicar.py                 programa las publicaciones y lee estadísticas

@@ -97,6 +97,7 @@ def main():
                     help="renderiza solo imágenes sueltas en esos segundos")
     ap.add_argument("--sin-voz", action="store_true")
     ap.add_argument("--guardar-blend", action="store_true")
+    ap.add_argument("--estilo", help="maqueta, caricatura, arcilla o plano (si no, el ESTILO de la estructura)")
     ap.add_argument("--sin-efectos", action="store_true",
                     help="solo voz (y música): para ponerle los efectos con otra herramienta (Real SFX)")
     a = ap.parse_args()
@@ -105,6 +106,8 @@ def main():
         os.environ["ELEVENLABS_API_KEY"] = ""
 
     est, ruta_est = cargar(a.estructura)
+    estilo = a.estilo or getattr(est, "ESTILO", "maqueta")
+    print(f"[creador] Estilo visual: {estilo}")
     out = os.path.join(RAIZ, "salida", a.estructura)
     os.makedirs(out, exist_ok=True)
     if not voz.hay_clave():
@@ -135,7 +138,7 @@ def main():
         cmd = [buscar_blender(), "-b", "--factory-startup",
                "-P", os.path.join(AQUI, "blender_construir.py"), "--",
                "--estructura", ruta_est, "--linea-tiempo", ruta_lt,
-               "--salida", frames, "--calidad", a.calidad]
+               "--salida", frames, "--calidad", a.calidad, "--estilo", estilo]
         if a.gpu:
             cmd.append("--gpu")
         if a.guardar_blend:
@@ -145,7 +148,7 @@ def main():
             subprocess.run(cmd, check=True)
             print(f"[creador] Imágenes de prueba en {frames}/ (ver_*.png)")
             continue
-        huella = huella_render(ruta_est, lt, a.calidad)
+        huella = huella_render(ruta_est, lt, a.calidad + estilo)
         marca = os.path.join(frames, "huella.txt")
         hecho = os.path.exists(marca) and open(marca).read() == huella
         if hecho:
