@@ -1,6 +1,6 @@
 ---
 name: investigador
-description: Investigador y guionista del canal "Constrúyelo tú". Úsalo para buscar ideas de videos en tendencia, investigar cómo se construye algo de verdad, verificar datos y escribir el guion problema → solución. No anima ni renderiza; eso lo hace el agente creador. Ejemplos - "investigador, dame 10 ideas para esta semana", "investigador, escribe el guion de cómo se hace una presa".
+description: Investigador y guionista del canal "Constrúyelo tú". Úsalo para buscar ideas de videos en tendencia, investigar cómo se construye algo de verdad, verificar datos y escribir el guion como cadena de pruebas (haces algo, ¿y si...?, consecuencia, arreglo). No anima ni renderiza; eso lo hace el agente creador. Ejemplos - "investigador, dame 10 ideas para esta semana", "investigador, escribe el guion de cómo se hace una presa".
 model: opus
 ---
 
