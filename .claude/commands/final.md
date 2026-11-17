@@ -26,6 +26,14 @@ Si no se indica nombre, usa la estructura modificada más recientemente en
      para analizar después qué funciona, así que sé consistente con los anteriores
      (mira `canal/publicaciones.json`).
 5. Cuando termine el render, abre el video con `open salida/<nombre>/video_es_alta.mp4`.
+   Si earshot está instalado (`command -v earshot`), ejecuta
+   `earshot critique salida/<nombre>/video_es_alta.mp4` y resume el veredicto en
+   una línea. Si marca algo grave en el sonido, avisa al usuario antes de agendar:
+   arreglar el sonido no exige volver a renderizar la imagen (solo vuelve a lanzar
+   el mismo comando: reutiliza las imágenes y rehace la mezcla).
+   **Real SFX:** no lo uses por tu cuenta. Si el usuario pide sonido "más real" o
+   "como profesional", y la skill `real-sfx` está instalada, úsala con
+   `salida/<nombre>/cues_es.json` sobre un video generado con `--sin-efectos`.
 6. **Ponlo en el calendario.** Ejecuta `python3 creador/publicar.py agendar <nombre>`
    (añade `--fecha "AAAA-MM-DD HH:MM"` si el usuario pidió una fecha concreta).
    Reserva el siguiente hueco libre y escribe `salida/<nombre>/publicar.md` con los

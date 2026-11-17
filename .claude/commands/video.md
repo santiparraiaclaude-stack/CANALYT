@@ -29,9 +29,19 @@ háblale en español sencillo y no le pidas que ejecute comandos.
    espera a que termine).
    Si en la salida aparece alguna línea `[creador] AVISO:` (un texto que no cabe o
    señala algo que no se ve), corrige la escena y repite el boceto antes de enseñarlo.
+   **Revisión de sonido (si earshot está instalado).** Comprueba con
+   `command -v earshot`. Si está, ejecuta
+   `earshot critique salida/<nombre>/video_es_boceto.mp4` (la primera vez tarda en
+   cargar). Lee el veredicto y la lista "FIX FIRST": si señala efectos demasiado
+   fuertes o flojos, huecos sin sonido o golpes desfasados de la imagen, corrígelo
+   tú (volúmenes en `creador/sonido.py`, momentos o `sonidos` de la escena en
+   `creador/estructuras/<nombre>.py`) y repite el boceto, como máximo dos veces.
+   Si `python3 creador/banco_sonidos.py --lista` muestra tipos con 0 sonidos reales,
+   menciónalo al usuario y ofrece llenarlos.
 4. **Ábrelo** con `open salida/<nombre>/video_es_boceto.mp4` y dile al usuario que es
    un borrador (se ve borroso y a saltos) para revisar voz, historia y movimiento.
-5. **PARA y pregunta:** "¿Qué cambiamos?" Ofrece ejemplos: textos, ritmo, una escena
+5. **PARA y pregunta:** "¿Qué cambiamos?" Si earshot dio un resumen, enséñale el
+   veredicto en una línea. Ofrece ejemplos: textos, ritmo, una escena
    que no se entiende, cámaras. Aplica los cambios que pida (tú mismo si son
    pequeños; con el agente `creador` si hay que rehacer escenas), vuelve a generar
    el boceto y vuelve a preguntar. Repite hasta que diga que está bien.
