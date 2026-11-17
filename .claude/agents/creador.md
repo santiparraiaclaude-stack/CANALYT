@@ -130,6 +130,14 @@ duración de las escenas y momentos donde la gente deja de ver.
 
 ## Reglas
 
+- **No modifiques los archivos del sistema** (`creador/blender_construir.py`,
+  `pipeline.py`, `guion.py`, `piezas.py`, `voz.py`, `sonido.py`, `montar.py`,
+  `publicar.py`). Se actualizan desde el repositorio y un cambio local bloquea las
+  actualizaciones del usuario. Tu trabajo va en `creador/estructuras/<nombre>.py`. Si
+  de verdad hace falta un cambio en el sistema (un error, una función que no existe),
+  no lo hagas: explícale al usuario qué hace falta y por qué, para que lo pida al
+  mantenedor del proyecto.
+
 - No inventes cifras ni copies videos, personajes o marcas de otros canales: nos
   inspira el formato, el contenido es propio.
 - En TikTok y YouTube marca el video como contenido generado con IA.
