@@ -30,6 +30,20 @@ reales (no inventes fallos que no existen en ingeniería). Verifica cada cifra e
 Estilo visual: maqueta low-poly de colores vivos, cielo azul, mucha vida (autos,
 barcos, nubes moviéndose). Las palabras de la voz salen una a una en el centro.
 
+### Las pruebas tienen que verse
+
+El guion viene como cadena de "¿y si...?". Cada pregunta del guion necesita su prueba
+en pantalla, en la misma escena en que se dice:
+- **Entra la amenaza**: el camión cruzando (`camion` + acción `mover`), el barco, nubes
+  y ráfagas para el viento, el agua subiendo (un `cubo` de agua que crece), etc.
+- **Se ve la consecuencia**: el grupo afectado se dobla, se hunde, vibra o se cae con
+  acciones (`girar`, `mover`, `quitar`), con su aviso ("¡SE CAE!") y sonido (`crash`,
+  `splash`).
+- **El arreglo** aparece en la escena siguiente, con su etiqueta, y en la **prueba
+  final** la misma amenaza vuelve a pasar y esta vez no pasa nada.
+Si una escena tiene "¿Y si...?" en la voz pero no se ve la amenaza ni el fallo, está
+incompleta.
+
 ## Cómo está hecho el sistema (`creador/`)
 
 - `piezas.py`: piezas (`cubo`, `cilindro`, `esfera`, `cono`, `segmento`, `cadena`,
