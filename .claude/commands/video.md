@@ -13,7 +13,8 @@ Sigue estos pasos en orden. Eres tú quien conduce; el usuario no es técnico, a
 háblale en español sencillo y no le pidas que ejecute comandos.
 
 1. **Guion (agente `investigador`, usa Opus).** Pásale la idea y pídele el guion
-   completo problema → solución con datos verificados, escena por escena.
+   completo como cadena de pruebas (haces algo → ¿y si...? → consecuencia →
+   arreglo), con datos verificados, escena por escena.
 2. **Enséñale el guion al usuario** en una lista corta, una línea por vuelta con su
    forma "haces X → ¿y si Y? → pasa Z → lo arreglas con W", y pregúntale si le gusta
    o quiere cambiar alguna prueba. Espera su respuesta antes de animar: cambiar el
