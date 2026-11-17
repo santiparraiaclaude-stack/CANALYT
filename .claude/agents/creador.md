@@ -48,7 +48,9 @@ incompleta.
 
 ### Estilo visual y modelos descargados
 
-- **Estilo:** cada estructura puede fijar `ESTILO = "..."` arriba del archivo:
+- **Estilo:** el canal tiene un estilo por defecto (`CANAL_ESTILO` en `.env`) que se
+  aplica a todos los videos. Pon `ESTILO = "..."` en una estructura **solo** si el
+  usuario pide un estilo distinto para ese video concreto. Estilos que existen:
   `maqueta` (por defecto, colores vivos), `caricatura` (contorno negro de cómic),
   `arcilla` (plastilina mate, luz cálida) o `plano` (plano de ingeniero azul con
   líneas blancas). Si el usuario pide un estilo, ponlo ahí. También se puede forzar

@@ -106,7 +106,8 @@ def main():
         os.environ["ELEVENLABS_API_KEY"] = ""
 
     est, ruta_est = cargar(a.estructura)
-    estilo = a.estilo or getattr(est, "ESTILO", "maqueta")
+    # Prioridad: --estilo > ESTILO del video > CANAL_ESTILO del .env (estilo del canal)
+    estilo = a.estilo or getattr(est, "ESTILO", None) or os.environ.get("CANAL_ESTILO") or "maqueta"
     print(f"[creador] Estilo visual: {estilo}")
     out = os.path.join(RAIZ, "salida", a.estructura)
     os.makedirs(out, exist_ok=True)

@@ -106,9 +106,9 @@ solo con voz para eso).
 
 ## Estilos y modelos 3D (opcional)
 
-Estilos: `maqueta` (por defecto), `caricatura`, `arcilla` y `plano`. Pídelo en la idea
-(`/video cómo se hace un túnel, estilo caricatura`) o al renderizar con
-`--estilo caricatura`.
+Estilos: `maqueta` (por defecto), `caricatura`, `arcilla` y `plano`. Para todo el canal,
+pon en `.env` por ejemplo `CANAL_ESTILO=caricatura`. Para un video concreto, pídelo en la
+idea (`/video cómo se hace un túnel, estilo arcilla`).
 
 Modelos reales (camiones, personajes, árboles...): descarga packs gratis de Kenney a
 `modelos/descargas/` y ejecuta `python3 creador/banco_modelos.py`. Detalles en
