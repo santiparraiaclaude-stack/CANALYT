@@ -64,6 +64,28 @@ def huella_render(ruta_est, lt, calidad):
     return h.hexdigest()
 
 
+# Nuestros tipos de sonido -> los de la skill Real SFX (references/typed-cues.md)
+TIPOS_REAL_SFX = {"golpe": ("hit", 0.8), "pop": ("pop", 0.7), "subida": ("whoosh", 0.5),
+                  "paso": ("wipe", 0.9), "splash": ("water", 1.0), "crash": ("hit", 1.2),
+                  "alerta": ("error", 0.8), "tada": ("success", 1.0)}
+
+
+def escribir_cues(sonidos, ruta):
+    """Lista de eventos de sonido con su segundo exacto, en el formato de Real SFX."""
+    cues, ultimo = [], {}
+    for s in sorted(sonidos, key=lambda x: x["t"]):
+        tipo, g = TIPOS_REAL_SFX.get(s["tipo"], (None, 1.0))
+        if not tipo or s["t"] - ultimo.get(tipo, -9) < 0.12:
+            continue
+        ultimo[tipo] = s["t"]
+        cue = {"t": round(s["t"], 3), "type": tipo, "g": g}
+        if tipo == "whoosh":
+            cue["len"] = 0.4
+        cues.append(cue)
+    with open(ruta, "w", encoding="utf-8") as f:
+        json.dump({"cues": cues}, f, indent=1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("estructura")
@@ -75,6 +97,8 @@ def main():
                     help="renderiza solo imágenes sueltas en esos segundos")
     ap.add_argument("--sin-voz", action="store_true")
     ap.add_argument("--guardar-blend", action="store_true")
+    ap.add_argument("--sin-efectos", action="store_true",
+                    help="solo voz (y música): para ponerle los efectos con otra herramienta (Real SFX)")
     a = ap.parse_args()
     voz.cargar_env()
     if a.sin_voz:
@@ -137,7 +161,8 @@ def main():
         # 3) Sonido y montaje ---------------------------------------------------
         plan = guion.planificar(est, lt, idioma)
         efectos = os.path.join(out, f"_efectos_{idioma}.wav")
-        sonido.generar(plan["sonidos"], lt["duracion_total"], efectos)
+        sonido.generar([] if a.sin_efectos else plan["sonidos"], lt["duracion_total"], efectos)
+        escribir_cues(plan["sonidos"], os.path.join(out, f"cues_{idioma}.json"))
         wav = os.path.join(out, f"audio_{idioma}.wav")
         montar.pista_audio(escenas, mp3s, efectos, wav, a.musica, voz.DESFASE)
         mp4 = os.path.join(out, f"video_{idioma}_{a.calidad}.mp4")

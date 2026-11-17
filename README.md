@@ -92,6 +92,18 @@ También puedes pedirle cosas sueltas al agente:
 - *"creador, dame 10 ideas de videos que estén en tendencia"*
 - *"creador, haz el video de cómo se hace un túnel bajo el mar"*
 
+## Sonidos reales (opcional)
+
+```bash
+python3 creador/banco_sonidos.py
+```
+
+Baja efectos reales y gratis (CC0) desde Openverse a `sonidos/`. A partir de ahí cada
+video los usa en vez de los sintetizados. Cada render deja también
+`salida/<nombre>/cues_es.json`: la lista de momentos con sonido, en el formato de la
+skill **Real SFX**, por si quieres sonorizar con ella (`--sin-efectos` saca el video
+solo con voz para eso).
+
 ## Estructura del proyecto
 
 ```
@@ -103,7 +115,8 @@ creador/
   blender_construir.py        animación y render en Blender
   voz.py                      narración con ElevenLabs (tiempos por palabra)
   probar_voces.py             muestras para elegir la voz
-  sonido.py                   efectos de sonido
+  sonido.py                   efectos de sonido (reales si hay banco, si no sintetizados)
+  banco_sonidos.py            descarga sonidos CC0 de Openverse a sonidos/
   montar.py                   mezcla de audio y mp4 final
   pipeline.py                 lo une todo
   publicar.py                 programa las publicaciones y lee estadísticas

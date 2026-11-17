@@ -1,12 +1,55 @@
-"""Efectos de sonido sintetizados (sin archivos externos ni librerías).
+"""Efectos de sonido del video.
 
 Recibe la lista de sonidos del plan ([{"tipo", "t"}]) y escribe un WAV mono.
 Tipos: golpe, pop, subida, paso, splash, crash, alerta, tada.
+
+Si hay grabaciones reales en sonidos/<tipo>/ (las baja creador/banco_sonidos.py
+desde Openverse, o pones las tuyas), se usan esas, variando entre ellas. Si no,
+el sonido se sintetiza.
 """
 import array
 import math
+import os
 import random
+import subprocess
 import wave
+
+BANCO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sonidos")
+LARGO_MAX = {"golpe": 1.2, "pop": 0.5, "subida": 0.9, "paso": 1.4, "splash": 2.5,
+             "crash": 2.5, "alerta": 1.2, "tada": 3.0}
+_cache = {}
+
+
+def _archivos(tipo):
+    carpeta = os.path.join(BANCO, tipo)
+    if not os.path.isdir(carpeta):
+        return []
+    return sorted(os.path.join(carpeta, f) for f in os.listdir(carpeta)
+                  if f.lower().endswith((".wav", ".mp3", ".ogg", ".flac")))
+
+
+def _grabacion(ruta, tipo):
+    """Lee un archivo con ffmpeg, quita el silencio inicial, recorta y normaliza."""
+    if ruta in _cache:
+        return _cache[ruta]
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", ruta, "-ac", "1", "-ar", str(FREC),
+                        "-f", "f32le", "-"], capture_output=True)
+    datos = array.array("f")
+    datos.frombytes(r.stdout[: len(r.stdout) // 4 * 4])
+    pico = max((abs(v) for v in datos), default=0.0)
+    if pico < 1e-4:
+        _cache[ruta] = None
+        return None
+    umbral = pico * 0.08
+    inicio = next((i for i, v in enumerate(datos) if abs(v) > umbral), 0)
+    inicio = max(0, inicio - int(0.004 * FREC))
+    largo = int(LARGO_MAX.get(tipo, 2.0) * FREC)
+    trozo = datos[inicio:inicio + largo]
+    cola = min(len(trozo), int(0.06 * FREC))     # se apaga suave si se recortó
+    for k in range(cola):
+        trozo[len(trozo) - cola + k] *= 1 - k / cola
+    _cache[ruta] = [v / pico for v in trozo]
+    return _cache[ruta]
 
 FREC = 44100
 ESPERA = {"golpe": 0.07, "pop": 0.05, "subida": 0.09}   # separación mínima entre iguales
@@ -91,6 +134,10 @@ def _tada(rnd):
     return out
 
 
+# Las grabaciones vienen normalizadas a pico 1: se ajustan para que suenen parecido
+REAL_GANANCIA = {"golpe": 0.55, "pop": 0.5, "subida": 0.45, "paso": 0.45, "splash": 0.4,
+                 "crash": 0.4, "alerta": 0.4, "tada": 0.5}
+
 GENERADORES = {"golpe": _golpe, "pop": _pop, "subida": _subida, "paso": _paso,
                "splash": _splash, "crash": _crash, "alerta": _alerta, "tada": _tada}
 
@@ -109,7 +156,14 @@ def generar(sonidos, duracion, ruta_wav):
         ultimo[tipo] = t
         vol = VOLUMEN[tipo] * rnd.uniform(0.8, 1.0)
         i0 = int(t * FREC)
-        for i, v in enumerate(GENERADORES[tipo](rnd)):
+        muestras = None
+        reales = _archivos(tipo)
+        if reales:
+            muestras = _grabacion(rnd.choice(reales), tipo)
+            vol *= REAL_GANANCIA.get(tipo, 0.8)
+        if muestras is None:
+            muestras = GENERADORES[tipo](rnd)
+        for i, v in enumerate(muestras):
             if i0 + i < n:
                 pista[i0 + i] += v * vol
     salida = array.array("h", (int(max(-1.0, min(1.0, v)) * 32000) for v in pista))
