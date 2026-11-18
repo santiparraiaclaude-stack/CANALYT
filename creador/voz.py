@@ -165,6 +165,7 @@ def _para_pantalla(pal):
     out = []
     for p, a, b in pal:
         txt = limpiar(p)
-        if txt:
-            out.append([txt, round(a + DESFASE, 3), round(b + DESFASE, 3)])
+        if txt:   # [en pantalla (con mayúscula), inicio, fin, tal cual se dice (para karaoke)]
+            crudo = p.strip().strip("\"“”«»()")
+            out.append([txt, round(a + DESFASE, 3), round(b + DESFASE, 3), crudo])
     return out

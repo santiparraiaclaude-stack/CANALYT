@@ -5,6 +5,7 @@ Python puro: lo usan Blender (para animar) y sonido.py (para los efectos).
 Una estructura define:
 
     TITULO   = {"es": "...", "en": "..."}      pregunta que se ve al principio
+    AMBIENTE = "ambiente"                      (opcional) sonido de fondo todo el video
     CAMARA   = {"lente": 24}
     ESCENARIO = [piezas con anim="ninguna"]
     ESCENAS  = [escena, escena, ...]
@@ -30,6 +31,9 @@ Cada escena es un momento de la historia:
       "etiquetas": [{"es": "ANCLAJE", "en": "...", "pos": (x, y, z), "t": (0.3, 1)}],
       "sonidos": [{"tipo": "crash", "t": 0.6}],
       "final": True,                # última escena: confeti y texto destacado
+      "celebrar": False,            # final sin confeti ni fanfarria (historias, terror)
+      "opciones": {"es": ["A) ...", "B) ..."], "en": [...]},  # pantalla "¿qué harías?"
+      "opciones_t": 0.2,            # cuándo aparecen las opciones dentro de la escena
     }
 
 Todos los "t" son fracciones de la escena (0 = empieza, 1 = termina), porque
@@ -45,7 +49,8 @@ SONIDO_ENTRADA = {"caer": ("golpe", 0.2), "crecer": ("subida", 0.0),
 def planificar(est, lt, idioma):
     """lt = {"escenas": [{"inicio", "duracion", "palabras"}], "duracion_total"}."""
     total = lt["duracion_total"]
-    plan = {"piezas": [], "acciones": [], "camara": [], "palabras": [],
+    plan = {"piezas": [], "acciones": [], "camara": [], "palabras": [], "opciones": [],
+            "ambiente": getattr(est, "AMBIENTE", None),
             "avisos": [], "etiquetas": [], "sonidos": [], "confeti": None,
             "titulo": None, "total": total}
 
@@ -113,9 +118,11 @@ def planificar(est, lt, idioma):
         pose = fin
 
         # --- Textos ---
-        for palabra, a, b in seg.get("palabras", []):
-            plan["palabras"].append({"texto": palabra, "t0": T + a, "t1": T + b,
-                                     "final": bool(esc.get("final"))})
+        for item in seg.get("palabras", []):
+            palabra, a, b = item[:3]
+            crudo = item[3] if len(item) > 3 else palabra
+            plan["palabras"].append({"texto": palabra, "crudo": crudo, "t0": T + a, "t1": T + b,
+                                     "final": bool(esc.get("final")), "escena": i})
         if i == 0 and getattr(est, "TITULO", None):
             plan["titulo"] = {"texto": est.TITULO[idioma], "t0": 0.0, "t1": T + D}
         for av in esc.get("avisos", []):
@@ -132,7 +139,12 @@ def planificar(est, lt, idioma):
         for s in esc.get("sonidos", []):
             plan["sonidos"].append({"tipo": s["tipo"], "t": T + D * s["t"]})
 
-        if esc.get("final"):
+        if esc.get("opciones"):
+            f0 = esc.get("opciones_t", 0.2)
+            plan["opciones"].append({"items": esc["opciones"][idioma], "t0": T + D * f0, "t1": T + D + 0.6})
+            plan["sonidos"].append({"tipo": "golpe", "t": T + D * f0})
+
+        if esc.get("final") and esc.get("celebrar", True):
             plan["confeti"] = {"t": T + 0.15, "centro": esc.get("confeti", pose["centro"]),
                                "radio": pose["distancia"] * 0.35}
             plan["sonidos"].append({"tipo": "tada", "t": T + 0.1})

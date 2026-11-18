@@ -1,7 +1,8 @@
 """Efectos de sonido del video.
 
 Recibe la lista de sonidos del plan ([{"tipo", "t"}]) y escribe un WAV mono.
-Tipos: golpe, pop, subida, paso, splash, crash, alerta, tada.
+Tipos: golpe, pop, subida, paso, splash, crash, alerta, tada, latido, goteo,
+susurro, estatica y ambiente (fondo en bucle: AMBIENTE en la estructura).
 
 Si hay grabaciones reales en sonidos/<tipo>/ (las baja creador/banco_sonidos.py
 desde Openverse, o pones las tuyas), se usan esas, variando entre ellas. Si no,
@@ -16,7 +17,8 @@ import wave
 
 BANCO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sonidos")
 LARGO_MAX = {"golpe": 1.2, "pop": 0.5, "subida": 0.9, "paso": 1.4, "splash": 2.5,
-             "crash": 2.5, "alerta": 1.2, "tada": 3.0}
+             "crash": 2.5, "alerta": 1.2, "tada": 3.0, "latido": 3.0, "goteo": 0.8,
+             "susurro": 3.0, "estatica": 2.0, "ambiente": 60.0}
 _cache = {}
 
 
@@ -54,7 +56,8 @@ def _grabacion(ruta, tipo):
 FREC = 44100
 ESPERA = {"golpe": 0.07, "pop": 0.05, "subida": 0.09}   # separación mínima entre iguales
 VOLUMEN = {"golpe": 0.50, "pop": 0.22, "subida": 0.16, "paso": 0.30, "splash": 0.45,
-           "crash": 0.60, "alerta": 0.30, "tada": 0.40}
+           "crash": 0.60, "alerta": 0.30, "tada": 0.40, "latido": 0.55, "goteo": 0.30,
+           "susurro": 0.35, "estatica": 0.30, "ambiente": 0.22}
 
 
 def _golpe(rnd):
@@ -134,18 +137,85 @@ def _tada(rnd):
     return out
 
 
+def _latido(rnd):
+    out = []
+    for golpe in (0.0, 0.28):
+        n0 = int(golpe * FREC) - len(out)
+        out += [0.0] * max(0, n0)
+        fase = 0.0
+        for i in range(int(0.18 * FREC)):
+            t = i / FREC
+            fase += 2 * math.pi * (48 + 30 * math.exp(-t * 30)) / FREC
+            out.append(math.sin(fase) * math.exp(-t * 22) * (1.0 if golpe == 0 else 0.7))
+    return out
+
+
+def _goteo(rnd):
+    n = int(0.25 * FREC)
+    out, fase = [], 0.0
+    for i in range(n):
+        t = i / FREC
+        fase += 2 * math.pi * (900 + 1400 * math.exp(-t * 60)) / FREC
+        out.append(math.sin(fase) * math.exp(-t * 28))
+    return out
+
+
+def _susurro(rnd):
+    return _ruido(rnd, 1.6, 0.35, 0.25, lambda x: (math.sin(math.pi * x) ** 2) * (0.6 + 0.4 * math.sin(x * 40)))
+
+
+def _estatica(rnd):
+    return _ruido(rnd, 1.0, 0.95, 0.9, lambda x: 0.7 * (1 - x * 0.3) * (0.5 + 0.5 * (rnd.random() > 0.4)))
+
+
+def _ambiente(rnd):
+    """Zumbido grave y oscuro (se repite en bucle bajo todo el video)."""
+    n = int(8.0 * FREC)
+    out, y = [], 0.0
+    for i in range(n):
+        t = i / FREC
+        y += 0.02 * (rnd.uniform(-1, 1) - y)
+        tono = 0.5 * math.sin(2 * math.pi * 55 * t) + 0.3 * math.sin(2 * math.pi * 82.5 * t + math.sin(t * 0.7))
+        out.append((tono * (0.6 + 0.4 * math.sin(2 * math.pi * t / 8.0)) + y * 2.0) * 0.6)
+    return out
+
+
 # Las grabaciones vienen normalizadas a pico 1: se ajustan para que suenen parecido
 REAL_GANANCIA = {"golpe": 0.55, "pop": 0.5, "subida": 0.45, "paso": 0.45, "splash": 0.4,
-                 "crash": 0.4, "alerta": 0.4, "tada": 0.5}
+                 "crash": 0.4, "alerta": 0.4, "tada": 0.5, "latido": 0.6, "goteo": 0.5,
+                 "susurro": 0.5, "estatica": 0.4, "ambiente": 0.5}
 
 GENERADORES = {"golpe": _golpe, "pop": _pop, "subida": _subida, "paso": _paso,
-               "splash": _splash, "crash": _crash, "alerta": _alerta, "tada": _tada}
+               "splash": _splash, "crash": _crash, "alerta": _alerta, "tada": _tada,
+               "latido": _latido, "goteo": _goteo, "susurro": _susurro, "estatica": _estatica,
+               "ambiente": _ambiente}
 
 
-def generar(sonidos, duracion, ruta_wav):
+def _fondo(tipo, rnd, n, pista):
+    """Sonido de ambiente en bucle bajo todo el video, con entrada y salida suaves."""
+    reales = _archivos(tipo)
+    muestras = _grabacion(rnd.choice(reales), tipo) if reales else None
+    vol = VOLUMEN.get(tipo, 0.2) * (REAL_GANANCIA.get(tipo, 0.5) if muestras else 1.0)
+    if not muestras:
+        muestras = GENERADORES.get(tipo, _ambiente)(rnd)
+    largo = len(muestras)
+    cruce = min(int(0.5 * FREC), largo // 4)
+    entrada, salida = int(1.5 * FREC), int(2.0 * FREC)
+    for i in range(n):
+        k = i % largo
+        v = muestras[k]
+        if k < cruce and i >= largo:                       # disimula la costura del bucle
+            v = v * (k / cruce) + muestras[largo - cruce + k] * (1 - k / cruce)
+        env = min(1.0, i / entrada, (n - i) / salida)
+        pista[i] += v * vol * max(0.0, env)
+
+
+def generar(sonidos, duracion, ruta_wav, ambiente=None):
     rnd = random.Random(3)
     n = int(duracion * FREC) + FREC
     pista = array.array("f", bytes(4 * n))
+    if ambiente:
+        _fondo(ambiente, rnd, n, pista)
     ultimo = {}
     for s in sorted(sonidos, key=lambda x: x["t"]):
         tipo, t = s["tipo"], s["t"]

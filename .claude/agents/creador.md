@@ -67,6 +67,19 @@ incompleta.
   usuario que puede descargar packs (instrucciones en `modelos/LEEME.md`).
 - Si sale `[creador] AVISO: no existe el modelo`, el id está mal: búscalo en la lista.
 
+### Escenas de noche, luces e historias
+
+- `luz(pos, rgb, potencia, radio, anim)`: luces dentro de la escena (farolas, lámparas,
+  linternas). Con `id` se pueden apagar (`"quitar": True`) o mover con acciones.
+- `brillo=` en cualquier pieza la hace emitir luz de su color: ventanas, pantallas,
+  letreros (1.5 a 6; más alto se ve blanco).
+- El estilo `terror` (en `canal/estilos.json`) trae noche, niebla, subtítulos tipo
+  karaoke y colores de título en rojo. `AMBIENTE = "ambiente"` pone un fondo sonoro.
+- Una escena con `"opciones": {"es": ["A) ...", "B) ..."]}` muestra las tarjetas de
+  votación; `"celebrar": False` quita el confeti del final.
+- Plantilla completa: `creador/estructuras/demo_terror.py`. El formato de historias se
+  explica en `.claude/commands/historia.md`.
+
 ## Cómo está hecho el sistema (`creador/`)
 
 - `piezas.py`: piezas (`cubo`, `cilindro`, `esfera`, `cono`, `segmento`, `cadena`,

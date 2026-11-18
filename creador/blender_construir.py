@@ -130,7 +130,23 @@ def _nodos(m):
     return m.node_tree
 
 
-def material(nombre):
+def material(nombre, brillo=0.0):
+    """Material de un color de COLORES. brillo > 0 lo hace emitir luz (ventanas, pantallas)."""
+    if brillo:
+        clave_m = f"{nombre}@{brillo}"
+        if clave_m not in _materiales:
+            m = material(nombre).copy()
+            m.name = clave_m
+            b = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+            r, g, bl = COLORES.get(nombre, (1, 1, 1))
+            em = _entrada(b, "Emission Color", "Emission")
+            if em:
+                em.default_value = (r, g, bl, 1)
+            fuerza = _entrada(b, "Emission Strength")
+            if fuerza:
+                fuerza.default_value = brillo
+            _materiales[clave_m] = m
+        return _materiales[clave_m]
     if nombre in _materiales:
         return _materiales[nombre]
     m = bpy.data.materials.new(nombre)
@@ -305,7 +321,28 @@ def crear_modelo(p):
     return raiz, (tam.x * esc, tam.y * esc, tam.z * esc)
 
 
+def crear_luz(p):
+    datos = bpy.data.lights.new("luz", p.get("clase", "POINT"))
+    datos.energy = p.get("potencia", 50)
+    datos.color = tuple(p.get("rgb", (1.0, 0.8, 0.6)))
+    datos.shadow_soft_size = p.get("radio", 0.2)
+    if datos.type == "SPOT":
+        datos.spot_size = math.radians(p.get("apertura", 60))
+    _n_pieza[0] += 1
+    obj = enlazar(bpy.data.objects.new(f"luz_{_n_pieza[0]:04d}", datos))
+    rot = Euler([math.radians(a) for a in p["rot"]], "XYZ")
+    obj.rotation_euler = rot
+    obj.location = Vector(p["pos"])
+    if p.get("id"):
+        g = grupo(p["id"], p.get("pivote", p["pos"]))
+        obj.parent = g["obj"]
+        obj.matrix_parent_inverse = Matrix.Translation(-Vector(g["obj"].location))
+    return obj, Vector(p["pos"]), rot
+
+
 def crear_pieza(p):
+    if p["tipo"] == "luz":
+        return crear_luz(p)
     if p["tipo"] == "modelo":
         _n_pieza[0] += 1
         obj, dims = crear_modelo(p)
@@ -326,7 +363,7 @@ def crear_pieza(p):
         v.co = Vector((v.co.x * dx, v.co.y * dy, (v.co.z + base) * dz))
     _n_pieza[0] += 1
     obj = enlazar(bpy.data.objects.new(f"pieza_{_n_pieza[0]:04d}", malla))
-    malla.materials.append(material(p["color"]))
+    malla.materials.append(material(p["color"], p.get("brillo", 0.0)))
     if p["tipo"] == "cubo" and min(dx, dy, dz) >= 0.12 and max(dx, dy, dz) < 60:
         bisel = obj.modifiers.new("bisel", "BEVEL")
         bisel.width = min(0.06, 0.2 * min(dx, dy, dz))
@@ -372,6 +409,9 @@ def animar_entrada(obj, loc, rot, p, t):
     base_esc = Vector(obj.scale)
     anim = p["anim"]
     if anim == "ninguna" or t is None:
+        return
+    if p["tipo"] == "luz":      # una luz solo se enciende
+        visible_entre(obj, fr(t))
         return
     f0 = fr(t)
     f1 = f0 + max(2, round(guion.DUR_ENTRADA[anim] * FPS))
@@ -521,12 +561,104 @@ def pop(objs, f0, f1, escala_fin=1.0):
 BLANCO, AMARILLO = (1.0, 1.0, 1.0), (1.0, 0.78, 0.0)
 
 
-def textos_en_camara(cam, plan, lente):
+def caja_plana(ancho, alto, rgb, padre, pos, nombre="txt_caja"):
+    m = malla_base("cubo").copy()
+    for v in m.vertices:
+        v.co = Vector((v.co.x * ancho, v.co.y * alto, v.co.z * 0.0005))
+    m.materials.append(material_luz(f"c{rgb}", rgb))
+    o = enlazar(bpy.data.objects.new(nombre, m))
+    o.parent = padre
+    o.location = pos
+    sin_sombra(o)
+    return o
+
+
+def subtitulos_karaoke(cam, plan, px, y_de, conf):
+    """La frase completa en gris; la palabra que suena, en blanco dentro de un recuadro."""
+    gris = tuple(conf.get("color_frase", (0.62, 0.66, 0.72)))
+    tam = conf.get("tam", 66) * px
+    ancho_max = 880 * px
+    por_frase = conf.get("palabras_por_frase", 4)
+    y0 = y_de(conf.get("altura", 0.23))
+    escenas = {}
+    for w in plan["palabras"]:
+        w = dict(w, palabra=w.get("crudo") or w["texto"])
+        escenas.setdefault(w["escena"], []).append(w)
+    for lista in escenas.values():
+        frases, actual = [], []
+        for w in lista:
+            actual.append(w)
+            fin_frase = w["palabra"][-1:] in ".?!:;," or len(actual) >= por_frase
+            if fin_frase:
+                frases.append(actual)
+                actual = []
+        if actual:
+            frases.append(actual)
+        for k, frase in enumerate(frases):
+            t0 = frase[0]["t0"]
+            t1 = frases[k + 1][0]["t0"] if k + 1 < len(frases) else frase[-1]["t1"] + 0.35
+            # medir cada palabra y repartir en líneas centradas
+            medidas = []
+            for w in frase:
+                cu = curva_texto(w["palabra"], tam)
+                o = enlazar(bpy.data.objects.new("txt_medida", cu))
+                bpy.context.view_layer.update()
+                medidas.append(o.dimensions.x)
+                bpy.data.objects.remove(o)
+            espacio = tam * 0.3
+            lineas, linea, ancho = [], [], 0.0
+            for w, a in zip(frase, medidas):
+                if linea and ancho + espacio + a > ancho_max:
+                    lineas.append((linea, ancho))
+                    linea, ancho = [], 0.0
+                ancho += (espacio if linea else 0) + a
+                linea.append((w, a))
+            lineas.append((linea, ancho))
+            for n, (linea, ancho) in enumerate(lineas):
+                x = -ancho / 2
+                y = y0 - n * tam * 1.35
+                for i, (w, a) in enumerate(linea):
+                    cx = x + a / 2
+                    fondo = texto_doble(w["palabra"], tam, gris, cam, (cx, y, -1), grosor=0.03)
+                    for o in fondo:
+                        visible_entre(o, fr(t0), fr(t1))
+                    sig = linea[i + 1][0]["t0"] if i + 1 < len(linea) else w["t1"] + 0.15
+                    w0, w1 = fr(w["t0"]), max(fr(w["t0"]) + 2, fr(min(sig, t1)))
+                    activa = texto_doble(w["palabra"], tam, BLANCO, cam, (cx, y, -0.999), grosor=0.05)
+                    marco = caja_plana(a + tam * 0.45, tam * 1.15, (1, 1, 1), cam, (cx, y + tam * 0.02, -1.001))
+                    interior = caja_plana(a + tam * 0.33, tam * 1.03, (0.03, 0.04, 0.07), cam, (cx, y + tam * 0.02, -1.0005))
+                    for o in activa + [marco, interior]:
+                        visible_entre(o, w0, w1)
+                    x += a + espacio
+
+
+def textos_en_camara(cam, plan, lente, conf=None):
+    conf = conf or {}
     alto1 = 36.0 / lente          # alto visible a 1 unidad de la cámara (vídeo vertical)
     px = alto1 / 1920.0           # 1 píxel de un vídeo de 1080x1920
 
     def y_de(frac_desde_arriba):
         return (0.5 - frac_desde_arriba) * alto1
+
+    if conf.get("marca"):         # tu @usuario, discreto, todo el video
+        objs = texto_doble(conf["marca"], 34 * px, (0.85, 0.87, 0.9), cam, (0, y_de(0.62), -1.002), grosor=0.04)
+        for o in objs:
+            visible_entre(o, 1)
+
+    for op in plan.get("opciones", []):     # pantalla final "¿qué harías?"
+        n = len(op["items"])
+        for k, item in enumerate(op["items"]):
+            y = y_de(0.40 + k * 0.13 - (n - 2) * 0.05)
+            f0 = fr(op["t0"]) + k * 6
+            caja = caja_plana(860 * px, 150 * px, (0.06, 0.06, 0.08), cam, (0, y, -1.001), "aviso_op")
+            borde = caja_plana(876 * px, 166 * px, tuple(conf.get("color_opciones", (0.9, 0.12, 0.1))), cam,
+                               (0, y, -1.0015), "aviso_op")
+            txt = texto_doble(item, 58 * px, BLANCO, cam, (0, y - 10 * px, -0.999), ancho=800 * px, grosor=0.04)
+            pop([caja, borde] + txt, f0, fr(op["t1"]))
+
+    if conf.get("subtitulos") == "karaoke":
+        subtitulos_karaoke(cam, plan, px, y_de, conf.get("karaoke", {}))
+        plan = dict(plan, palabras=[])
 
     for w in plan["palabras"]:
         f0, f1 = fr(w["t0"]), max(fr(w["t0"]) + 2, fr(w["t1"]))
@@ -537,13 +669,15 @@ def textos_en_camara(cam, plan, lente):
 
     if plan["titulo"]:
         t = plan["titulo"]
-        objs = texto_doble(t["texto"], 86 * px, AMARILLO, cam, (0, y_de(0.17), -1), grosor=0.045)
+        color_t = tuple(conf.get("color_titulo", AMARILLO))
+        objs = texto_doble(t["texto"], 86 * px, color_t, cam, (0, y_de(conf.get("titulo_altura", 0.17)), -1),
+                           grosor=0.045)
         pop(objs, fr(t["t0"]) + 2, fr(t["t1"]))
 
     for av in plan["avisos"]:
         raiz = enlazar(bpy.data.objects.new("aviso", None))
         raiz.parent = cam
-        raiz.location = (0, y_de(0.235), -1)
+        raiz.location = (0, y_de(conf.get("aviso_altura", 0.235)), -1)
         raiz.rotation_euler = (0, 0, math.radians(-4))
         tam = 76 * px
         cu = curva_texto(av["texto"], tam)
@@ -777,6 +911,47 @@ def contorno(color, grosor_1080):
     linea.linestyle.thickness = grosor
 
 
+def niebla(conf):
+    """Niebla según la distancia a la cámara (pase de niebla + composición)."""
+    s = bpy.context.scene
+    bpy.context.view_layer.use_pass_mist = True
+    s.world.mist_settings.start = conf.get("inicio", 4)
+    s.world.mist_settings.depth = conf.get("distancia", 40)
+    color = (*conf.get("color", (0.05, 0.07, 0.12)), 1)
+    fuerza = conf.get("fuerza", 0.85)
+    if hasattr(s, "compositing_node_group"):          # Blender 5
+        arbol = bpy.data.node_groups.new("niebla", "CompositorNodeTree")
+        arbol.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+        s.compositing_node_group = arbol
+        capas = arbol.nodes.new("CompositorNodeRLayers")
+        mult = arbol.nodes.new("ShaderNodeMath")
+        mezcla = arbol.nodes.new("ShaderNodeMix")
+        mezcla.data_type = "RGBA"
+        salida = arbol.nodes.new("NodeGroupOutput")
+        ent_f, ent_a, ent_b, sal = mezcla.inputs["Factor"], mezcla.inputs["A"], mezcla.inputs["B"], mezcla.outputs["Result"]
+    else:                                              # Blender 4
+        s.use_nodes = True
+        arbol = s.node_tree
+        for n in list(arbol.nodes):
+            arbol.nodes.remove(n)
+        capas = arbol.nodes.new("CompositorNodeRLayers")
+        mult = arbol.nodes.new("CompositorNodeMath")
+        mezcla = arbol.nodes.new("CompositorNodeMixRGB")
+        salida = arbol.nodes.new("CompositorNodeComposite")
+        ent_f, ent_a, ent_b, sal = mezcla.inputs[0], mezcla.inputs[1], mezcla.inputs[2], mezcla.outputs[0]
+    try:
+        s.render.compositor_device = "CPU"
+    except (AttributeError, TypeError):
+        pass
+    mult.operation = "MULTIPLY"
+    mult.inputs[1].default_value = fuerza
+    arbol.links.new(capas.outputs["Mist"], mult.inputs[0])
+    arbol.links.new(mult.outputs[0], ent_f)
+    arbol.links.new(capas.outputs["Image"], ent_a)
+    ent_b.default_value = color
+    arbol.links.new(sal, salida.inputs[0])
+
+
 def aplicar_estilo(nombre):
     """Aplica un estilo de canal/estilos.json. Ajustes posibles (todos opcionales):
 
@@ -822,6 +997,8 @@ def aplicar_estilo(nombre):
         fondo.inputs["Color"].default_value = (*cielo["color"], 1)
     if "fuerza" in cielo:
         fondo.inputs["Strength"].default_value = cielo["fuerza"]
+    if "niebla" in e:
+        niebla(e["niebla"])
     luz = e.get("sol", {})
     if sol:
         if "energia" in luz:
@@ -920,7 +1097,7 @@ def main():
 
     lente = getattr(est, "CAMARA", {}).get("lente", 24)
     cam = crear_camara(plan["camara"], lente)
-    textos_en_camara(cam, plan, lente)
+    textos_en_camara(cam, plan, lente, cargar_estilos().get(a.estilo, {}))
     for aviso in etiquetas_3d(cam, plan, lente):
         print("[creador] AVISO:", aviso)
     if plan["confeti"]:

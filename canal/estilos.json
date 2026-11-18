@@ -8,23 +8,143 @@
   },
   "caricatura": {
    "descripcion": "contorno negro como un cómic, colores planos",
-   "materiales": {"rugosidad": 1.0, "brillo": 0.0},
-   "contorno": {"color": [0, 0, 0], "grosor": 3.0},
-   "cielo": {"fuerza": 1.25},
-   "sol": {"energia": 3.6}
+   "materiales": {
+    "rugosidad": 1.0,
+    "brillo": 0.0
+   },
+   "contorno": {
+    "color": [
+     0,
+     0,
+     0
+    ],
+    "grosor": 3.0
+   },
+   "cielo": {
+    "fuerza": 1.25
+   },
+   "sol": {
+    "energia": 3.6
+   }
   },
   "arcilla": {
    "descripcion": "plastilina mate, luz cálida y sombras suaves",
-   "materiales": {"rugosidad": 1.0, "brillo": 0.15, "mezcla": {"color": [0.67, 0.58, 0.42], "cantidad": 0.12}},
-   "cielo": {"color": [0.55, 0.72, 0.95]},
-   "sol": {"angulo": 35, "color": [1.0, 0.92, 0.82]}
+   "materiales": {
+    "rugosidad": 1.0,
+    "brillo": 0.15,
+    "mezcla": {
+     "color": [
+      0.67,
+      0.58,
+      0.42
+     ],
+     "cantidad": 0.12
+    }
+   },
+   "cielo": {
+    "color": [
+     0.55,
+     0.72,
+     0.95
+    ]
+   },
+   "sol": {
+    "angulo": 35,
+    "color": [
+     1.0,
+     0.92,
+     0.82
+    ]
+   }
   },
   "plano": {
    "descripcion": "plano de ingeniero: fondo azul y líneas blancas",
-   "materiales": {"rugosidad": 1.0, "brillo": 0.0, "color_fijo": [0.05, 0.2, 0.48], "color_agua": [0.02, 0.09, 0.22]},
-   "contorno": {"color": [0.92, 0.96, 1.0], "grosor": 2.4},
-   "cielo": {"color": [0.02, 0.08, 0.2], "fuerza": 1.0},
-   "sol": {"energia": 1.5}
+   "materiales": {
+    "rugosidad": 1.0,
+    "brillo": 0.0,
+    "color_fijo": [
+     0.05,
+     0.2,
+     0.48
+    ],
+    "color_agua": [
+     0.02,
+     0.09,
+     0.22
+    ]
+   },
+   "contorno": {
+    "color": [
+     0.92,
+     0.96,
+     1.0
+    ],
+    "grosor": 2.4
+   },
+   "cielo": {
+    "color": [
+     0.02,
+     0.08,
+     0.2
+    ],
+    "fuerza": 1.0
+   },
+   "sol": {
+    "energia": 1.5
+   }
+  },
+  "terror": {
+   "descripcion": "noche de terror: oscuro azulado, niebla, luces cálidas y rojas, subtítulos karaoke",
+   "materiales": {
+    "rugosidad": 0.9,
+    "brillo": 0.1
+   },
+   "cielo": {
+    "color": [
+     0.012,
+     0.018,
+     0.04
+    ],
+    "fuerza": 1.0
+   },
+   "sol": {
+    "energia": 0.35,
+    "angulo": 3,
+    "color": [
+     0.55,
+     0.65,
+     1.0
+    ]
+   },
+   "niebla": {
+    "color": [
+     0.035,
+     0.05,
+     0.09
+    ],
+    "inicio": 6,
+    "distancia": 45,
+    "fuerza": 0.85
+   },
+   "subtitulos": "karaoke",
+   "karaoke": {
+    "tam": 82,
+    "altura": 0.21,
+    "palabras_por_frase": 5
+   },
+   "marca": "",
+   "color_opciones": [
+    0.9,
+    0.12,
+    0.1
+   ],
+   "titulo_altura": 0.09,
+   "aviso_altura": 0.36,
+   "color_titulo": [
+    0.95,
+    0.16,
+    0.1
+   ]
   }
  }
 }

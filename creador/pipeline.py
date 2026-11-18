@@ -81,7 +81,8 @@ def huella_render(ruta_est, lt, calidad):
 # Nuestros tipos de sonido -> los de la skill Real SFX (references/typed-cues.md)
 TIPOS_REAL_SFX = {"golpe": ("hit", 0.8), "pop": ("pop", 0.7), "subida": ("whoosh", 0.5),
                   "paso": ("wipe", 0.9), "splash": ("water", 1.0), "crash": ("hit", 1.2),
-                  "alerta": ("error", 0.8), "tada": ("success", 1.0)}
+                  "alerta": ("error", 0.8), "tada": ("success", 1.0), "latido": ("thump", 0.8),
+                  "goteo": ("water", 0.6), "susurro": ("ambience", 0.7), "estatica": ("glitch", 0.7)}
 
 
 def escribir_cues(sonidos, ruta):
@@ -178,7 +179,8 @@ def main():
         # 3) Sonido y montaje ---------------------------------------------------
         plan = guion.planificar(est, lt, idioma)
         efectos = os.path.join(out, f"_efectos_{idioma}.wav")
-        sonido.generar([] if a.sin_efectos else plan["sonidos"], lt["duracion_total"], efectos)
+        sonido.generar([] if a.sin_efectos else plan["sonidos"], lt["duracion_total"], efectos,
+                       ambiente=None if a.sin_efectos else plan.get("ambiente"))
         escribir_cues(plan["sonidos"], os.path.join(out, f"cues_{idioma}.json"))
         wav = os.path.join(out, f"audio_{idioma}.wav")
         montar.pista_audio(escenas, mp3s, efectos, wav, a.musica, voz.DESFASE)

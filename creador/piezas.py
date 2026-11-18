@@ -18,6 +18,7 @@ Cada pieza es un diccionario:
     id     : (opcional) nombre de grupo, para moverla después con acciones
     pivote : (opcional) punto alrededor del que gira su grupo
     t      : (opcional) momento de entrada dentro de la escena, de 0 a 1
+    brillo : (opcional) la pieza emite luz de su color (ventanas, pantallas): 2 a 10
 """
 import math
 
@@ -47,6 +48,15 @@ COLORES = {
     "madera":      (0.45, 0.27, 0.12),
     "negro":       (0.02, 0.02, 0.02),
     "piel":        (0.90, 0.62, 0.45),
+    # noche / terror
+    "noche":       (0.05, 0.07, 0.12),
+    "fachada":     (0.18, 0.17, 0.22),
+    "ladrillo":    (0.30, 0.10, 0.09),
+    "acera":       (0.22, 0.22, 0.25),
+    "ventana_roja": (1.00, 0.16, 0.10),
+    "ventana_calida": (1.00, 0.62, 0.30),
+    "farol":       (1.00, 0.75, 0.42),
+    "pantalla":    (0.95, 0.15, 0.12),
 }
 
 COLORES_AUTO = ["rojo", "azul", "blanco", "verde", "amarillo", "rosa",
@@ -128,6 +138,22 @@ def con(piezas, **campos):
     for p in piezas:
         p.update(campos)
     return piezas
+
+
+def luz(pos, rgb=(1.0, 0.75, 0.45), potencia=60, radio=0.2, anim="aparecer", clase="POINT",
+        rot=(0, 0, 0), apertura=60, **extra):
+    """Una luz dentro de la escena (farola, lámpara, linterna, pantalla).
+
+    potencia en vatios (20 = bombilla suave, 200 = farola fuerte). clase "SPOT" es un
+    foco que apunta según rot (apertura en grados). Con anim="aparecer" se enciende en
+    su momento; con id se puede mover o apagar ("quitar") con acciones.
+    Para que algo brille (ventanas, pantallas), usa cualquier pieza con brillo=3.
+    """
+    p = {"tipo": "luz", "pos": list(pos), "dim": [0, 0, 0], "rot": list(rot), "color": None,
+         "anim": anim, "rgb": list(rgb), "potencia": potencia, "radio": radio, "clase": clase,
+         "apertura": apertura}
+    p.update({k: v for k, v in extra.items() if v is not None})
+    return p
 
 
 def modelo(id_modelo, pos, largo=None, alto=None, escala=1.0, rumbo=0, anim="caer", **extra):

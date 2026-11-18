@@ -40,6 +40,12 @@ TIPOS = {
     "crash":  (["metal crash", "crash impact", "collision crash"], 0.3, 4.0),
     "alerta": (["alert beep", "warning alarm short", "error buzzer"], 0.15, 2.0),
     "tada":   (["success fanfare", "tada", "level complete jingle"], 0.6, 4.0),
+    # terror / suspenso
+    "ambiente": (["dark ambient drone", "horror ambience", "eerie atmosphere"], 8.0, 90.0),
+    "latido":   (["heartbeat", "heart beat slow"], 0.5, 8.0),
+    "goteo":    (["water drip", "faucet drip", "drop of water"], 0.1, 3.0),
+    "susurro":  (["whisper", "creepy whisper"], 0.5, 6.0),
+    "estatica": (["radio static", "tv static noise"], 0.4, 5.0),
 }
 
 

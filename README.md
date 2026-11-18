@@ -115,7 +115,16 @@ Modelos reales (camiones, personajes, árboles...): descarga packs gratis de Ken
 `modelos/descargas/` y ejecuta `python3 creador/banco_modelos.py`. Detalles en
 `modelos/LEEME.md`.
 
-## Estructura del proyecto
+## Historias interactivas (otro formato)
+
+`/historia <idea>` crea historias en partes (terror, misterio...) con votación "¿A o B?"
+al final, estilo noche con niebla, luces y subtítulos karaoke. Conviene publicarlas en
+otra cuenta. Plantilla: `creador/estructuras/demo_terror.py`. Para la parte siguiente:
+`/historia parte 2 de demo_terror, ganó la B`. Para escenarios de ciudad e interiores,
+descarga también https://kenney.nl/assets/city-kit-suburban y
+https://kenney.nl/assets/furniture-kit (mismo proceso que en `modelos/LEEME.md`).
+
+
 
 ```
 .claude/agents/creador.md     el agente
