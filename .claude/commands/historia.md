@@ -27,6 +27,8 @@ Pídele una historia con esta forma (segunda persona, presente, frases cortas):
   miedo viene de lo que no se ve. Nada que imite noticias reales ni alertas oficiales
   de verdad (organismos, logos, números de emergencia reales).
 - Título corto tipo "PARTE 1\nNOMBRE DE LA HISTORIA".
+- **El texto de voz es SOLO lo que se narra.** Nunca indicaciones como "Pantalla roja:",
+  "(sirena)", "Escena 2" o "Cámara:": eso va en "qué se ve", no en la voz.
 - Para cada escena: texto de voz, qué se ve (lugar, cámara, luz), sonidos (`latido`,
   `goteo`, `susurro`, `estatica`, `golpe`) y avisos si los hay ("SE ACERCA").
 
@@ -38,7 +40,9 @@ Enséñale el guion al usuario (una línea por escena) y espera su visto bueno.
 
 ## 2. Escena (agente `creador`)
 
-Pásale el guion aprobado. Recuérdale: escenas nocturnas con niebla, ventanas y
+Pásale el guion aprobado. Recuérdale que construya los escenarios con los kits de
+`creador/kits.py` (`calle`, `habitacion`, `sotano`, `horizonte`) para que tengan mucho
+detalle, y además: escenas nocturnas con niebla, ventanas y
 pantallas con `brillo`, el texto que se lee en pantallas y carteles con `texto3d` o el
 prefabricado `celular(...)` (nunca una pantalla vacía), farolas y lámparas con `luz(...)`, cámaras bajas y cercanas
 (como si fueras tú quien mira), luces que se apagan con acciones `quitar`, y nada

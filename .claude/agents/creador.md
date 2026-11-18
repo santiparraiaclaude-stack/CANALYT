@@ -86,6 +86,30 @@ incompleta.
 - Plantilla completa: `creador/estructuras/demo_terror.py`. El formato de historias se
   explica en `.claude/commands/historia.md`.
 
+### Escenarios con detalle (kits.py): úsalos siempre que encajen
+
+Una escena con dos o tres objetos sueltos se ve vacía y barata. Antes de construir a
+mano, usa los escenarios prefabricados de `creador/kits.py` (todos en metros, usan los
+modelos de Kenney y, si falta alguno, ponen formas básicas):
+
+- `calle(y0, largo, tipo="suburbana"|"comercial", ...)`: calle completa con casas o
+  edificios a los dos lados, aceras, autos estacionados, árboles, cercas, farolas con luz
+  y ventanas encendidas. Devuelve `puntos["casas"]` para etiquetar una casa concreta.
+- `habitacion(centro, ...)`: dormitorio amueblado con ventana y lámpara;
+  `puntos["mesa_noche"]` es donde va el celular (`celular(..., escala=0.1)`).
+- `sotano(centro, escotilla=True)`: sótano con escalera, estanterías con cajas,
+  caldera, tubos, bombilla y escotilla con luz roja (`puntos["escotilla"]`).
+- `horizonte(centro)`: edificios en el horizonte para que el fondo nunca quede vacío.
+
+Cada kit devuelve `(piezas, puntos)`. Pon cada escenario en su propia zona (por ejemplo
+la habitación en y=-60 y el sótano en y=-80) y salta entre ellos con `"corte": True`.
+Reglas de detalle:
+- En cada encuadre debe haber **primer plano, plano medio y fondo** con objetos.
+- En exteriores, añade siempre `horizonte(...)` y algo de vida (luces, autos, árboles).
+- Escala real: la cámara en primera persona va a 1.5–1.7 m de altura; un celular mide
+  0.08 x 0.15 m, una puerta 2 m y una casa 6–9 m.
+- Comprueba con `--ver` que nada sale sobreexpuesto (blanco quemado) ni negro del todo.
+
 ## Cómo está hecho el sistema (`creador/`)
 
 - `piezas.py`: piezas (`cubo`, `cilindro`, `esfera`, `cono`, `segmento`, `cadena`,

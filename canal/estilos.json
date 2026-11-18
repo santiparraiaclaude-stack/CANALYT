@@ -122,9 +122,9 @@
      0.05,
      0.09
     ],
-    "inicio": 6,
-    "distancia": 45,
-    "fuerza": 0.85
+    "inicio": 8,
+    "distancia": 150,
+    "fuerza": 0.8
    },
    "subtitulos": "karaoke",
    "karaoke": {

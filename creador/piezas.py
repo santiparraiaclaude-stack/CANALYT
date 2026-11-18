@@ -179,33 +179,36 @@ def triangulo(pos, tam, color="rojo", anim="aparecer", rot=(0, 0, 0), alto=0.02,
 
 
 def celular(pos, rumbo=0, color_pantalla="pantalla", hora="3:17", titulo="ALERTA",
-            mensaje="", icono=True, brillo=0.45, anim="ninguna", id=None, t=None):
+            mensaje="", icono=True, brillo=0.45, anim="ninguna", id=None, t=None, escala=1.0):
     """Celular tumbado (pantalla hacia arriba) con una alerta: hora, icono y mensaje.
 
-    pos: centro del celular sobre la mesa. rumbo: giro en grados. Mide 0.9 x 1.7.
+    pos: punto de apoyo sobre la mesa. rumbo: giro en grados. A escala 1 mide 0.9 x 1.7;
+    en escenarios en metros (kits.py) usa escala=0.09 para un celular real (8 x 15 cm).
     Devuelve una lista de piezas (todas con el mismo id si se da, para moverlo).
     """
     import math as _m
     x, y, z = pos
     a = _m.radians(rumbo)
+    e = escala
 
     def g(dx, dy):           # gira un punto relativo alrededor del centro
-        return (x + dx * _m.cos(a) - dy * _m.sin(a), y + dx * _m.sin(a) + dy * _m.cos(a))
+        return (x + e * (dx * _m.cos(a) - dy * _m.sin(a)), y + e * (dx * _m.sin(a) + dy * _m.cos(a)))
 
     extra = {"id": id, "t": t}
-    p = [cubo((x, y, z + 0.04), (0.9, 1.7, 0.08), "negro", anim, (0, 0, rumbo), **extra),
-         cubo((x, y, z + 0.085), (0.8, 1.55, 0.01), color_pantalla, anim, (0, 0, rumbo),
+    p = [cubo((x, y, z + 0.04 * e), (0.9 * e, 1.7 * e, 0.08 * e), "negro", anim, (0, 0, rumbo), **extra),
+         cubo((x, y, z + 0.085 * e), (0.8 * e, 1.55 * e, 0.01 * e), color_pantalla, anim, (0, 0, rumbo),
               brillo=brillo, **extra)]
-    zt = z + 0.095
-    p.append(texto3d(hora, (*g(-0.27, 0.67), zt), 0.075, "blanco", (0, 0, rumbo), 3.0, anim=anim, **extra))
+    zt = z + 0.095 * e
+    p.append(texto3d(hora, (*g(-0.27, 0.67), zt), 0.075 * e, "blanco", (0, 0, rumbo), 3.0, anim=anim, **extra))
     if icono:
-        p.append(triangulo((*g(0, 0.38), zt), 0.36, "blanco", anim, (0, 0, rumbo), brillo=3.0, **extra))
-        p.append(texto3d("!", (*g(0, 0.33), zt + 0.02), 0.19, "negro", (0, 0, rumbo), 1.0,
+        p.append(triangulo((*g(0, 0.38), zt), 0.36 * e, "blanco", anim, (0, 0, rumbo), alto=0.02 * e,
+                           brillo=3.0, **extra))
+        p.append(texto3d("!", (*g(0, 0.33), zt + 0.02 * e), 0.19 * e, "negro", (0, 0, rumbo), 1.0,
                          anim=anim, **extra))
     if titulo:
-        p.append(texto3d(titulo, (*g(0, 0.1), zt), 0.08, "blanco", (0, 0, rumbo), 3.0, anim=anim, **extra))
+        p.append(texto3d(titulo, (*g(0, 0.1), zt), 0.08 * e, "blanco", (0, 0, rumbo), 3.0, anim=anim, **extra))
     if mensaje:
-        p.append(texto3d(mensaje, (*g(0, -0.3), zt), 0.15, "blanco", (0, 0, rumbo), 4.0, ancho=0.72,
+        p.append(texto3d(mensaje, (*g(0, -0.3), zt), 0.15 * e, "blanco", (0, 0, rumbo), 4.0, ancho=0.72 * e,
                          anim=anim, **extra))
     return p
 
