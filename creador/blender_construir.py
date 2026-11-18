@@ -180,9 +180,9 @@ def material(nombre, brillo=0.0):
     return m
 
 
-def material_luz(nombre, rgb):
+def material_luz(nombre, rgb, fuerza=1.0):
     """Material que no depende de las luces (textos, etiquetas)."""
-    clave_m = "luz_" + nombre
+    clave_m = "luz_" + nombre + ("" if fuerza == 1.0 else f"@{fuerza}")
     if clave_m in _materiales:
         return _materiales[clave_m]
     m = bpy.data.materials.new(clave_m)
@@ -192,6 +192,7 @@ def material_luz(nombre, rgb):
     salida = arbol.nodes.new("ShaderNodeOutputMaterial")
     em = arbol.nodes.new("ShaderNodeEmission")
     em.inputs["Color"].default_value = (*rgb, 1)
+    em.inputs["Strength"].default_value = fuerza
     arbol.links.new(em.outputs[0], salida.inputs[0])
     _materiales[clave_m] = m
     return m
@@ -210,6 +211,14 @@ def malla_base(tipo):
         bpy.ops.mesh.primitive_ico_sphere_add(radius=0.5, subdivisions=2)
     elif tipo == "cono":
         bpy.ops.mesh.primitive_cone_add(radius1=0.5, depth=1, vertices=16)
+    elif tipo == "triangulo":   # prisma triangular de 1x1x1 con la punta hacia +Y
+        m = bpy.data.meshes.new(nombre)
+        v = [(0, 0.5, -0.5), (-0.5, -0.5, -0.5), (0.5, -0.5, -0.5),
+             (0, 0.5, 0.5), (-0.5, -0.5, 0.5), (0.5, -0.5, 0.5)]
+        caras = [(0, 2, 1), (3, 4, 5), (0, 1, 4, 3), (1, 2, 5, 4), (2, 0, 3, 5)]
+        m.from_pydata(v, [], caras)
+        m.update()
+        return m
     obj = bpy.context.active_object
     malla = obj.data
     malla.name = nombre
@@ -340,9 +349,40 @@ def crear_luz(p):
     return obj, Vector(p["pos"]), rot
 
 
+def crear_texto3d(p):
+    """Texto dentro de la escena (pantallas, carteles, letreros) que brilla."""
+    cu = bpy.data.curves.new("txt3d", "FONT")
+    cu.body = p["texto"]
+    if fuente():
+        cu.font = fuente()
+    cu.size = p["tam"]
+    cu.align_x = "CENTER"
+    cu.align_y = "CENTER"
+    cu.space_line = 0.95
+    if p.get("ancho"):
+        cu.text_boxes[0].width = p["ancho"]
+        cu.text_boxes[0].x = -p["ancho"] / 2
+    cu.extrude = p.get("grosor", 0.0)
+    rgb = COLORES.get(p["color"], (1, 1, 1)) if isinstance(p["color"], str) else tuple(p["color"])
+    cu.materials.append(material_luz(f"t{rgb}", rgb, p.get("brillo", 1.5)))
+    _n_pieza[0] += 1
+    obj = enlazar(bpy.data.objects.new(f"txt3d_{_n_pieza[0]:04d}", cu))
+    sin_sombra(obj)
+    rot = Euler([math.radians(a) for a in p["rot"]], "XYZ")
+    obj.rotation_euler = rot
+    obj.location = Vector(p["pos"])
+    if p.get("id"):
+        g = grupo(p["id"], p.get("pivote", p["pos"]))
+        obj.parent = g["obj"]
+        obj.matrix_parent_inverse = Matrix.Translation(-Vector(g["obj"].location))
+    return obj, Vector(p["pos"]), rot
+
+
 def crear_pieza(p):
     if p["tipo"] == "luz":
         return crear_luz(p)
+    if p["tipo"] == "texto":
+        return crear_texto3d(p)
     if p["tipo"] == "modelo":
         _n_pieza[0] += 1
         obj, dims = crear_modelo(p)

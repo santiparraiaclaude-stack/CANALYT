@@ -6,7 +6,7 @@ niebla, farolas, edificios con ventanas encendidas que se apagan una a una.
 """
 import random
 
-from piezas import auto, con, cubo, grupo, luz
+from piezas import auto, celular, cubo, grupo, luz
 
 TITULO = {"es": "PARTE 1\nLAS LUCES SE APAGAN", "en": "PART 1\nTHE LIGHTS GO OUT"}
 TEMA = "terror"
@@ -58,9 +58,8 @@ def _escenario():
     p += auto((-2.5, 18, 0), "blanco", 90, "ninguna")
     # habitación con el celular (se ve en la escena 4)
     p.append(cubo((0, 80, 0.5), (8, 8, 1), "madera", "ninguna"))
-    p.append(cubo((0, 80, 1.05), (0.9, 1.7, 0.08), "negro", "ninguna"))
-    p += grupo("pantalla", [cubo((0, 80, 1.1), (0.8, 1.55, 0.02), "pantalla", "ninguna", brillo=1.6),
-                            luz((0, 80, 1.6), (1.0, 0.2, 0.15), 25, 0.4, "ninguna")], (0, 80, 1.1))
+    p += celular((0, 80, 1.0), titulo="MENSAJE NUEVO", mensaje="NO ENCIENDAS NINGUNA LUZ")
+    p.append(luz((0, 80, 1.6), (1.0, 0.2, 0.15), 25, 0.4, "ninguna"))
     return p
 
 

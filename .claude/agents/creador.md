@@ -75,6 +75,12 @@ incompleta.
   letreros (1.5 a 6; más alto se ve blanco).
 - El estilo `terror` (en `canal/estilos.json`) trae noche, niebla, subtítulos tipo
   karaoke y colores de título en rojo. `AMBIENTE = "ambiente"` pone un fondo sonoro.
+- **Texto dentro de la escena:** `texto3d("NO HAGAS RUIDO", pos, tam, color, rot, brillo)`
+  para pantallas, carteles y letreros que brillan; `triangulo(...)` para iconos de
+  peligro. Para un celular con alerta usa el prefabricado
+  `celular(pos, rumbo, hora="3:17", titulo="ALERTA", mensaje="...")`. **Una pantalla
+  nunca debe quedar en blanco:** si la historia muestra un celular, televisor o cartel,
+  pon el texto que lee el protagonista.
 - Una escena con `"opciones": {"es": ["A) ...", "B) ..."]}` muestra las tarjetas de
   votación; `"celebrar": False` quita el confeti del final.
 - Plantilla completa: `creador/estructuras/demo_terror.py`. El formato de historias se

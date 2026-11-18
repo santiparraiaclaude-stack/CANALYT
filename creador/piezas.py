@@ -4,7 +4,7 @@ Python puro (no importa Blender): las estructuras se pueden escribir y
 revisar sin abrir Blender.
 
 Cada pieza es un diccionario:
-    tipo   : "cubo" | "cilindro" | "esfera" | "cono" | "modelo" (ver modelo())
+    tipo   : "cubo" | "cilindro" | "esfera" | "cono" | "triangulo" | "modelo" | "texto" | "luz"
     pos    : centro de la pieza (x, y, z)
     dim    : tamaño total (ancho_x, fondo_y, alto_z)
     rot    : rotación en grados (x, y, z)
@@ -153,6 +153,60 @@ def luz(pos, rgb=(1.0, 0.75, 0.45), potencia=60, radio=0.2, anim="aparecer", cla
          "anim": anim, "rgb": list(rgb), "potencia": potencia, "radio": radio, "clase": clase,
          "apertura": apertura}
     p.update({k: v for k, v in extra.items() if v is not None})
+    return p
+
+
+def texto3d(texto, pos, tam=0.3, color="blanco", rot=(0, 0, 0), brillo=1.5, ancho=None,
+            anim="aparecer", grosor=0.0, **extra):
+    """Texto DENTRO de la escena que brilla: pantallas de celular, carteles, letreros.
+
+    pos: centro del texto. Por defecto queda en el plano XY mirando hacia arriba (+Z),
+    con las letras leyéndose a lo largo de +X: perfecto para una pantalla tumbada.
+    Para un cartel vertical que mira hacia -Y usa rot=(90, 0, 0).
+    color: nombre de COLORES o (r, g, b). ancho: corta en varias líneas.
+    """
+    p = {"tipo": "texto", "texto": texto, "pos": list(pos), "dim": [0, 0, 0], "rot": list(rot),
+         "color": color, "anim": anim, "tam": tam, "brillo": brillo, "grosor": grosor}
+    if ancho:
+        p["ancho"] = ancho
+    p.update({k: v for k, v in extra.items() if v is not None})
+    return p
+
+
+def triangulo(pos, tam, color="rojo", anim="aparecer", rot=(0, 0, 0), alto=0.02, **extra):
+    """Triángulo (señal de peligro, icono de alerta). Punta hacia +Y; plano si alto es pequeño."""
+    return _pieza("triangulo", pos, (tam, tam, alto), color, anim, rot, extra)
+
+
+def celular(pos, rumbo=0, color_pantalla="pantalla", hora="3:17", titulo="ALERTA",
+            mensaje="", icono=True, brillo=0.45, anim="ninguna", id=None, t=None):
+    """Celular tumbado (pantalla hacia arriba) con una alerta: hora, icono y mensaje.
+
+    pos: centro del celular sobre la mesa. rumbo: giro en grados. Mide 0.9 x 1.7.
+    Devuelve una lista de piezas (todas con el mismo id si se da, para moverlo).
+    """
+    import math as _m
+    x, y, z = pos
+    a = _m.radians(rumbo)
+
+    def g(dx, dy):           # gira un punto relativo alrededor del centro
+        return (x + dx * _m.cos(a) - dy * _m.sin(a), y + dx * _m.sin(a) + dy * _m.cos(a))
+
+    extra = {"id": id, "t": t}
+    p = [cubo((x, y, z + 0.04), (0.9, 1.7, 0.08), "negro", anim, (0, 0, rumbo), **extra),
+         cubo((x, y, z + 0.085), (0.8, 1.55, 0.01), color_pantalla, anim, (0, 0, rumbo),
+              brillo=brillo, **extra)]
+    zt = z + 0.095
+    p.append(texto3d(hora, (*g(-0.27, 0.67), zt), 0.075, "blanco", (0, 0, rumbo), 3.0, anim=anim, **extra))
+    if icono:
+        p.append(triangulo((*g(0, 0.38), zt), 0.36, "blanco", anim, (0, 0, rumbo), brillo=3.0, **extra))
+        p.append(texto3d("!", (*g(0, 0.33), zt + 0.02), 0.19, "negro", (0, 0, rumbo), 1.0,
+                         anim=anim, **extra))
+    if titulo:
+        p.append(texto3d(titulo, (*g(0, 0.1), zt), 0.08, "blanco", (0, 0, rumbo), 3.0, anim=anim, **extra))
+    if mensaje:
+        p.append(texto3d(mensaje, (*g(0, -0.3), zt), 0.15, "blanco", (0, 0, rumbo), 4.0, ancho=0.72,
+                         anim=anim, **extra))
     return p
 
 

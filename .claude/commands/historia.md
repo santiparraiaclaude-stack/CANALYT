@@ -38,7 +38,8 @@ Enséñale el guion al usuario (una línea por escena) y espera su visto bueno.
 ## 2. Escena (agente `creador`)
 
 Pásale el guion aprobado. Recuérdale: escenas nocturnas con niebla, ventanas y
-pantallas con `brillo`, farolas y lámparas con `luz(...)`, cámaras bajas y cercanas
+pantallas con `brillo`, el texto que se lee en pantallas y carteles con `texto3d` o el
+prefabricado `celular(...)` (nunca una pantalla vacía), farolas y lámparas con `luz(...)`, cámaras bajas y cercanas
 (como si fueras tú quien mira), luces que se apagan con acciones `quitar`, y nada
 de confeti. Que revise el encuadre con `--ver` (subtítulos, avisos y tarjetas A/B
 completos y legibles) y no renderice el video.
