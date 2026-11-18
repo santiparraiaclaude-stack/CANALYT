@@ -489,8 +489,12 @@ def crear_camara(claves, lente):
     mira.target = pivote
     mira.track_axis = "TRACK_NEGATIVE_Z"
     mira.up_axis = "UP_Y"
+    previo = 0
     for k in claves:
-        pose, f = k["pose"], fr(k["t"])
+        # dos claves en la misma imagen (cortes a pocas fps) harían que la cámara
+        # viaje durante toda la escena anterior: la segunda va una imagen después
+        pose, f = k["pose"], max(fr(k["t"]), previo + 1)
+        previo = f
         pivote.location = pose["centro"]
         pivote.rotation_euler = (0, 0, math.radians(pose["angulo"]))
         cam.location = (pose["distancia"], 0, pose["altura"])
