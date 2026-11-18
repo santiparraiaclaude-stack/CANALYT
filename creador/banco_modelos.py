@@ -16,6 +16,8 @@ Packs recomendados (gratis, CC0: se pueden usar en videos monetizados):
   kenney.nl/assets/nature-kit           árboles, rocas, terreno
   kenney.nl/assets/mini-characters      personajes pequeños
   kenney.nl/assets/train-kit            trenes y vías
+  kaylousberg.itch.io/city-builder-bits ciudad completa estilo KayKit (CC0)
+  quaternius.com/packs/downtowncitymegakit.html  manzanas de ciudad (CC0)
   quaternius.com                        personajes, vehículos, edificios (CC0)
 """
 import argparse

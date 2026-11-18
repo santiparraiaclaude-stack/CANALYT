@@ -47,7 +47,9 @@ def buscar(palabras, packs=None, excluir=()):
 
 
 def _uno(rnd, palabras, packs=None, excluir=()):
-    ids = buscar(palabras, packs, excluir)
+    """Un modelo al azar: primero de los packs preferidos y, si no hay, de cualquier pack
+    (así sirven también KayKit, Quaternius u otros que descargues)."""
+    ids = buscar(palabras, packs, excluir) or (buscar(palabras, None, excluir) if packs else [])
     return rnd.choice(ids) if ids else None
 
 
@@ -191,11 +193,13 @@ def sotano(centro=(0, 0, -3), ancho=6.0, fondo=6.0, alto=2.4, escotilla=True, ru
 # --- Exteriores ------------------------------------------------------------------------
 
 def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, autos=8,
-          farolas=True, arboles=True, cercas=True, ventanas_encendidas=0.5, giro_casas=0, semilla=3):
+          farolas=True, arboles=True, cercas=False, ventanas_encendidas=0.5, giro_casas=0,
+          giro_autos=0, semilla=3):
     """Calle completa a lo largo del eje Y: asfalto con líneas, aceras, casas (o edificios
     con tipo="comercial") a los dos lados, autos estacionados, árboles, cercas y farolas
     con luz. puntos["casas"] = posiciones de cada casa (para etiquetas como "TU FAMILIA").
-    Si las casas salen de espaldas a la calle, prueba giro_casas=180."""
+    Si las casas salen de espaldas a la calle, prueba giro_casas=180; si los autos salen
+    atravesados, giro_autos=90."""
     rnd = random.Random(semilla)
     L = [cubo((0, y0, -0.05), (ancho_via, largo, 0.1), "asfalto", "ninguna")]
     for lado in (-1, 1):
@@ -205,8 +209,8 @@ def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, aut
     while k < largo / 2:
         L.append(cubo((0, y0 + k, 0.005), (0.15, 1.5, 0.01), "amarillo", "ninguna"))
         k += 4
-    palabras = (["building-type", "house", "building"] if tipo == "suburbana"
-                else ["building-skyscraper", "building", "low-detail"])
+    palabras = (["building-type", "house", "home", "building"] if tipo == "suburbana"
+                else ["building-skyscraper", "skyscraper", "building", "low-detail"])
     packs = ("suburban",) if tipo == "suburbana" else ("commercial",)
     paso = largo / casas_por_lado
     casas = []
@@ -252,34 +256,44 @@ def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, aut
                 L.append(cubo((fx - lado * 0.4, yy, 4.6), (0.9, 0.25, 0.15), "farol", "ninguna", brillo=6))
                 L.append(luz((fx - lado * 0.5, yy, 4.4), (1.0, 0.72, 0.42), 160, 0.3, "ninguna",
                              id=f"farola_{yy}_{lado}"))
-    modelos_auto = buscar(["sedan", "suv", "hatchback", "van", "taxi"], ("car",), excluir=("police",))
+    modelos_auto = (buscar(["sedan", "suv", "hatchback", "van", "taxi"], ("car",), excluir=("police", "wheel"))
+                    or buscar(["sedan", "suv", "hatchback", "taxi", "car"], None,
+                              excluir=("police", "wheel", "card", "carpet", "cart")))
     for n in range(autos):
         lado = rnd.choice((-1, 1))
-        pos = (lado * (ancho_via / 2 - 1.1), y0 + rnd.uniform(-largo / 2 + 4, largo / 2 - 4), 0)
-        if modelos_auto:
-            L.append(modelo(rnd.choice(modelos_auto), pos, largo=4.3, rumbo=90 + rnd.choice((0, 180)),
-                            anim="ninguna"))
+        # estacionados junto a la acera, en fila, sin pisarse
+        pos = (lado * (ancho_via / 2 - 1.2), y0 - largo / 2 + 6 + (largo - 12) * (n + rnd.uniform(0.1, 0.6)) / autos,
+               0)
+        if modelos_auto:   # los modelos importados ya miran a lo largo de Y
+            L.append(modelo(rnd.choice(modelos_auto), pos, largo=4.3,
+                            rumbo=giro_autos + (0 if lado > 0 else 180), anim="ninguna"))
         else:
             L += auto(pos, rnd.choice(["rojo", "azul", "blanco", "negro"]), 90, "ninguna", escala=3.6)
     return L, {"casas": casas, "inicio": (0, y0 - largo / 2, 1.6), "fin": (0, y0 + largo / 2, 1.6)}
 
 
-def horizonte(centro=(0, 0, 0), radio=110, n=48, alto=(18, 70), semilla=4):
-    """Siluetas de edificios altos en el horizonte, con ventanas encendidas al azar: llena
-    el fondo para que nunca se vea vacío. No tapa nada cercano."""
+def horizonte(centro=(0, 0, 0), radio=85, n=40, alto=(18, 60), semilla=4):
+    """Edificios altos en el horizonte, con cuadrícula de ventanas (algunas encendidas):
+    llena el fondo para que nunca se vea vacío. No tapa nada cercano."""
     rnd = random.Random(semilla)
     L = []
     for k in range(n):
         a = 2 * math.pi * k / n + rnd.uniform(-0.03, 0.03)
-        r = radio * rnd.uniform(0.9, 1.15)
+        r = radio * rnd.uniform(0.9, 1.2)
         x, y = centro[0] + r * math.cos(a), centro[1] + r * math.sin(a)
         h = rnd.uniform(*alto)
-        anchura = rnd.uniform(10, 20)
-        L.append(cubo((x, y, h / 2), (anchura, anchura, h), "negro", "ninguna", (0, 0, math.degrees(a))))
-        for j in range(rnd.randint(2, 7)):
-            vz = rnd.uniform(3, h - 3)
-            L.append(cubo((x - math.cos(a) * anchura / 2, y - math.sin(a) * anchura / 2, vz),
-                          (0.2, anchura * rnd.uniform(0.2, 0.6), 1.4),
-                          rnd.choice(["ventana_calida", "ventana_roja", "ventana_calida"]), "ninguna",
-                          (0, 0, math.degrees(a)), brillo=3))
+        anchura = rnd.uniform(10, 18)
+        giro = (0, 0, math.degrees(a))
+        L.append(cubo((x, y, h / 2), (anchura, anchura, h), "fachada", "ninguna", giro))
+        fx, fy = x - math.cos(a) * (anchura / 2 + 0.05), y - math.sin(a) * (anchura / 2 + 0.05)
+        tx, ty = -math.sin(a), math.cos(a)                     # dirección a lo ancho de la fachada
+        columnas = int(anchura // 3)
+        for fila in range(int((h - 4) // 3.5)):
+            for c in range(columnas):
+                if rnd.random() > 0.28:
+                    continue
+                off = (c - (columnas - 1) / 2) * 3
+                L.append(cubo((fx + tx * off, fy + ty * off, 3 + fila * 3.5), (0.15, 1.6, 1.8),
+                              rnd.choice(["ventana_calida", "ventana_calida", "ventana_roja"]), "ninguna",
+                              giro, brillo=2.2))
     return L, {}
