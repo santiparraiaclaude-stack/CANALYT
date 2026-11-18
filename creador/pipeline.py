@@ -147,6 +147,10 @@ def main():
         with open(ruta_lt, "w", encoding="utf-8") as f:
             json.dump(lt, f, ensure_ascii=False, indent=1)
         print(f"[creador] Duración ({idioma}): {t:.1f} s")
+        maximo = float(getattr(est, "DURACION_MAXIMA", 0) or 0)
+        if maximo and t > maximo:
+            print(f"[creador] AVISO: dura {t:.0f} s y el máximo de este video es {maximo:.0f} s: "
+                  "acorta el guion")
 
         # 2) Render 3D ----------------------------------------------------------
         frames = os.path.join(out, f"frames_{a.calidad}_{idioma}")

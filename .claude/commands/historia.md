@@ -8,7 +8,7 @@ El usuario quiere una historia interactiva: **$ARGUMENTS**
 Es un formato distinto al de construcción y conviene publicarlo en **otra cuenta**
 (díselo la primera vez si no lo sabe). Usa `creador/estructuras/demo_terror.py` como
 plantilla: escenario nocturno, luces (`luz(...)`), piezas que brillan (`brillo=`),
-`ESTILO = "terror"`, `TEMA = "terror"`, `AMBIENTE = "ambiente"` y una escena final con
+`ESTILO = "terror"`, `TEMA = "terror"`, `AMBIENTE = "ambiente"`, `DURACION_MAXIMA = 90` y una escena final con
 `"opciones"` y `"celebrar": False`.
 
 ## 1. Guion (agente `investigador`)
@@ -22,7 +22,8 @@ Pídele una historia con esta forma (segunda persona, presente, frases cortas):
 - **El momento límite:** la amenaza descubre al protagonista o se queda a un paso.
 - **La decisión:** "¿Qué haces? A: ... B: ..." Dos opciones concretas, las dos
   tentadoras y las dos arriesgadas. La voz las lee; en pantalla salen como tarjetas.
-- Entre 120 y 190 palabras en total (45–75 s). Sin sangre ni violencia explícita: el
+- **Cada parte dura como máximo 1:30 (90 s).** Apunta a 150–210 palabras (60–85 s).
+  Si el usuario pide otra duración, respétala. Sin sangre ni violencia explícita: el
   miedo viene de lo que no se ve. Nada que imite noticias reales ni alertas oficiales
   de verdad (organismos, logos, números de emergencia reales).
 - Título corto tipo "PARTE 1\nNOMBRE DE LA HISTORIA".
@@ -46,8 +47,10 @@ completos y legibles) y no renderice el video.
 
 ## 3. Boceto, cambios y final
 
-Igual que en `/video`: `python3 creador/pipeline.py <nombre> --calidad boceto --gpu`,
-ábrelo, pregunta qué cambiar y repite. Cuando lo apruebe, `/final <nombre>`.
+Igual que en `/video`: `python3 creador/pipeline.py <nombre> --calidad boceto --gpu`.
+Mira la línea `[creador] Duración (es): XX s`: si pasa del máximo (90 s salvo que el
+usuario pida otro), acorta el guion (quita frases, no la decisión final) y repite antes
+de enseñárselo. Ábrelo, pregunta qué cambiar y repite. Cuando lo apruebe, `/final <nombre>`.
 
 En `publicar.json` usa `"tema": "terror"` y en la descripción invita a votar:
 "¿Qué harías: A o B? Comenta tu voto y sígueme para la parte 2".
