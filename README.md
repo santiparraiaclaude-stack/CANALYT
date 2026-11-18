@@ -124,12 +124,19 @@ otra cuenta. Plantilla: `creador/estructuras/demo_terror.py`. Para la parte sigu
 descarga también https://kenney.nl/assets/city-kit-suburban y
 https://kenney.nl/assets/furniture-kit (mismo proceso que en `modelos/LEEME.md`).
 
+## Escenarios con detalle
 
+`creador/kits.py` trae escenarios completos listos para usar: `calle` (casas, autos,
+árboles, cercas, farolas), `habitacion` (dormitorio amueblado), `sotano` y `horizonte`
+(ciudad de fondo). Usan tus modelos de Kenney y, si falta alguno, formas básicas.
+
+## Estructura del proyecto
 
 ```
 .claude/agents/creador.md     el agente
 creador/
-  piezas.py                   piezas 3D, prefabricados (autos, barcos...) y colores
+  piezas.py                   piezas 3D, prefabricados (autos, barcos, celular...) y colores
+  kits.py                     escenarios completos: calle, habitación, sótano, horizonte
   guion.py                    convierte las escenas en una línea de tiempo
   estructuras/golden_gate.py  un archivo por video (plantilla)
   blender_construir.py        animación y render en Blender
