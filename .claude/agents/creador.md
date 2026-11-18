@@ -92,7 +92,10 @@ Una escena con dos o tres objetos sueltos se ve vacía y barata. Antes de constr
 mano, usa los escenarios prefabricados de `creador/kits.py` (todos en metros, usan los
 modelos de Kenney y, si falta alguno, ponen formas básicas):
 
-- `calle(y0, largo, tipo="suburbana"|"comercial", ...)`: calle completa con casas o
+- `calle(y0, largo, tipo="suburbana"|"comercial", packs=...)`: con `packs` eliges de qué
+  paquete salen casas, autos y árboles (mira los nombres de pack con
+  `python3 creador/banco_modelos.py --lista`; p. ej. los de KayKit o Quaternius dan
+  calles con más detalle). Calle completa con casas o
   edificios a los dos lados, aceras, autos estacionados, árboles, cercas, farolas con luz
   y ventanas encendidas. Devuelve `puntos["casas"]` para etiquetar una casa concreta.
 - `habitacion(centro, ...)`: dormitorio amueblado con ventana y lámpara;

@@ -194,12 +194,14 @@ def sotano(centro=(0, 0, -3), ancho=6.0, fondo=6.0, alto=2.4, escotilla=True, ru
 
 def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, autos=8,
           farolas=True, arboles=True, cercas=False, ventanas_encendidas=0.5, giro_casas=0,
-          giro_autos=0, semilla=3):
+          giro_autos=0, packs=None, semilla=3):
     """Calle completa a lo largo del eje Y: asfalto con líneas, aceras, casas (o edificios
     con tipo="comercial") a los dos lados, autos estacionados, árboles, cercas y farolas
     con luz. puntos["casas"] = posiciones de cada casa (para etiquetas como "TU FAMILIA").
     Si las casas salen de espaldas a la calle, prueba giro_casas=180; si los autos salen
-    atravesados, giro_autos=90."""
+    atravesados, giro_autos=90.
+    packs: de qué paquetes sacar casas, autos y árboles, p. ej. ("kaykit", "city-builder")
+    o ("downtown", "quaternius"). Sin indicarlo, prefiere Kenney y usa el resto si falta."""
     rnd = random.Random(semilla)
     L = [cubo((0, y0, -0.05), (ancho_via, largo, 0.1), "asfalto", "ninguna")]
     for lado in (-1, 1):
@@ -211,7 +213,8 @@ def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, aut
         k += 4
     palabras = (["building-type", "house", "home", "building"] if tipo == "suburbana"
                 else ["building-skyscraper", "skyscraper", "building", "low-detail"])
-    packs = ("suburban",) if tipo == "suburbana" else ("commercial",)
+    preferidos = tuple(packs) if packs else None
+    packs = preferidos or (("suburban",) if tipo == "suburbana" else ("commercial",))
     paso = largo / casas_por_lado
     casas = []
     for lado in (-1, 1):
@@ -244,7 +247,7 @@ def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, aut
                     else:
                         L.append(cubo((fx, yy + j * 2.8, 0.55), (0.08, 2.2, 0.8), "blanco", "ninguna"))
             if arboles and rnd.random() < 0.7:
-                t = _uno(rnd, ["tree"], ("nature", "suburban"))
+                t = _uno(rnd, ["tree"], preferidos or ("nature", "suburban"))
                 pos = (lado * (ancho_via / 2 + 4.5), yy + paso / 2, 0.1)
                 L += ([modelo(t, pos, alto=rnd.uniform(4, 6.5), rumbo=rnd.uniform(0, 360), anim="ninguna")]
                       if t else arbol(pos, rnd.uniform(1.6, 2.4)))
@@ -256,7 +259,10 @@ def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, aut
                 L.append(cubo((fx - lado * 0.4, yy, 4.6), (0.9, 0.25, 0.15), "farol", "ninguna", brillo=6))
                 L.append(luz((fx - lado * 0.5, yy, 4.4), (1.0, 0.72, 0.42), 160, 0.3, "ninguna",
                              id=f"farola_{yy}_{lado}"))
-    modelos_auto = (buscar(["sedan", "suv", "hatchback", "van", "taxi"], ("car",), excluir=("police", "wheel"))
+    modelos_auto = (buscar(["sedan", "suv", "hatchback", "van", "taxi", "car"], preferidos,
+                           excluir=("police", "wheel", "card", "carpet", "cart")) if preferidos else [])
+    modelos_auto = modelos_auto or (buscar(["sedan", "suv", "hatchback", "van", "taxi"], ("car",),
+                                           excluir=("police", "wheel"))
                     or buscar(["sedan", "suv", "hatchback", "taxi", "car"], None,
                               excluir=("police", "wheel", "card", "carpet", "cart")))
     for n in range(autos):
