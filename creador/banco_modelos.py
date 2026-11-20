@@ -39,6 +39,8 @@ AUXILIARES = (".bin", ".png", ".jpg", ".jpeg", ".mtl", ".tga")
 def nombre_pack(zip_o_carpeta):
     base = os.path.splitext(os.path.basename(zip_o_carpeta))[0]
     base = re.sub(r"^kenney[_ -]", "", base, flags=re.I)
+    base = re.sub(r"-\d{8}T\d{6}Z.*$", "", base, flags=re.I)     # sello de fecha de Google Drive
+    base = re.sub(r"\s*by\s*@?quaternius", "", base, flags=re.I)
     base = re.sub(r"\s*\(\d+\)$", "", base)                      # copias "(1)" del navegador
     base = re.sub(r"[_ -]v?\d+([._-]\d+)*$", "", base)          # versiones "_2.0", "-2-1", "20"
     return re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-") or "pack"
