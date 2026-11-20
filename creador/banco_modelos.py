@@ -64,6 +64,17 @@ def extraer(zip_ruta):
                 if actual is None or PREFERENCIA.index(ext) < PREFERENCIA.index(os.path.splitext(actual)[1].lower()):
                     mejores[clave] = n
         if not mejores:
+            internos = [n for n in nombres if n.lower().endswith(".zip")]
+            if internos:             # paquetes que traen otros zip dentro (bundles)
+                total = 0
+                for n in internos:
+                    destino = os.path.join(DESCARGAS, os.path.basename(n))
+                    with z.open(n) as src, open(destino, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                    sub, k = extraer(destino)
+                    print(f"  ✓ {sub}: {k} modelos (dentro de {os.path.basename(zip_ruta)})")
+                    total += k
+                return pack, total
             print(f"  {os.path.basename(zip_ruta)}: no tiene modelos 3D (¿es un pack 2D?)")
             return pack, 0
         carpetas = {os.path.dirname(n) for n in mejores.values()}
@@ -99,12 +110,89 @@ def catalogar():
     return items
 
 
+# Paquetes recomendados: (claves para reconocerlo en carpeta o zip, nombre, enlace, para qué)
+RECOMENDADOS = [
+    (("car-kit",), "Kenney Car Kit", "https://kenney.nl/assets/car-kit", "autos y camiones"),
+    (("city-kit-roads",), "Kenney City Kit Roads", "https://kenney.nl/assets/city-kit-roads", "carreteras"),
+    (("city-kit-industrial",), "Kenney City Kit Industrial", "https://kenney.nl/assets/city-kit-industrial",
+     "fábricas, grúas"),
+    (("city-kit-commercial",), "Kenney City Kit Commercial", "https://kenney.nl/assets/city-kit-commercial",
+     "edificios"),
+    (("city-kit-suburban",), "Kenney City Kit Suburban", "https://kenney.nl/assets/city-kit-suburban", "casas"),
+    (("nature-kit",), "Kenney Nature Kit", "https://kenney.nl/assets/nature-kit", "árboles, rocas"),
+    (("furniture-kit",), "Kenney Furniture Kit", "https://kenney.nl/assets/furniture-kit", "muebles"),
+    (("mini-characters",), "Kenney Mini Characters", "https://kenney.nl/assets/mini-characters", "personajes"),
+    (("city-builder",), "KayKit City Builder Bits", "https://kaylousberg.itch.io/city-builder-bits",
+     "ciudad con más detalle"),
+    (("furniture-bits",), "KayKit Furniture Bits", "https://kaylousberg.itch.io/furniture-bits",
+     "interiores con más detalle"),
+    (("downtown", "megakit"), "Quaternius Downtown City MegaKit",
+     "https://quaternius.com/packs/downtowncitymegakit.html", "manzanas tipo Nueva York"),
+]
+PATRONES_ZIP = ("kenney", "kaykit", "quaternius", "kit", "bits", "megakit", "downtown", "lowpoly", "low-poly")
+
+
+def instalados():
+    return [d for d in os.listdir(MODELOS) if d != "descargas" and os.path.isdir(os.path.join(MODELOS, d))]
+
+
+def recoger_de_descargas():
+    """Mueve a modelos/descargas los zip de paquetes 3D que haya en ~/Downloads (solo esos)."""
+    origen = os.path.expanduser("~/Downloads")
+    movidos = []
+    if not os.path.isdir(origen):
+        return movidos
+    for f in sorted(os.listdir(origen)):
+        bajo = f.lower()
+        if bajo.endswith(".zip") and any(p in bajo for p in PATRONES_ZIP):
+            destino = os.path.join(DESCARGAS, f)
+            if not os.path.exists(destino):
+                shutil.move(os.path.join(origen, f), destino)
+                movidos.append(f)
+    return movidos
+
+
+def revisar():
+    os.makedirs(DESCARGAS, exist_ok=True)
+    movidos = recoger_de_descargas()
+    if movidos:
+        print("Traídos de Descargas:", ", ".join(movidos))
+    zips = sorted(f for f in os.listdir(DESCARGAS) if f.lower().endswith(".zip"))
+    hechos = set(instalados())
+    for z in zips:                       # prepara los que aún no estén
+        if nombre_pack(z) not in hechos:
+            try:
+                pack, n = extraer(os.path.join(DESCARGAS, z))
+                if n:
+                    print(f"  ✓ preparado {pack}: {n} modelos")
+            except zipfile.BadZipFile:
+                print(f"  ✗ {z}: zip dañado o incompleto; vuelve a descargarlo")
+    items = catalogar()
+    hechos = instalados()
+    print("\nPaquetes recomendados:")
+    faltan = 0
+    for claves, nombre, enlace, uso in RECOMENDADOS:
+        ok = any(any(k in d for k in claves) for d in hechos)
+        faltan += not ok
+        print(f"  {'✅' if ok else '❌'} {nombre:<34} {uso:<26}" + ("" if ok else f" → {enlace}"))
+    otros = [d for d in hechos if not any(any(k in d for k in c) for c, *_ in RECOMENDADOS)]
+    if otros:
+        print("  ➕ Otros instalados:", ", ".join(otros))
+    print(f"\n{len(items)} modelos en el catálogo." + (f" Faltan {faltan} paquetes: descárgalos y vuelve a ejecutar "
+                                                       "este comando." if faltan else " ¡Tienes todos!"))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--revisar", action="store_true",
+                    help="qué paquetes tienes, enlaces de los que faltan, y prepara lo descargado")
     ap.add_argument("--lista", nargs="?", const="", metavar="TEXTO",
                     help="muestra el catálogo (opcional: filtra por texto, p. ej. truck)")
     a = ap.parse_args()
     os.makedirs(DESCARGAS, exist_ok=True)
+    if a.revisar:
+        revisar()
+        return
 
     if a.lista is not None:
         items = catalogar()

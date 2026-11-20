@@ -19,7 +19,8 @@
    - https://quaternius.itch.io/quaternius-lowpoly-bundle (todos los packs de
      Quaternius: casas, interiores, autos, personajes animados...)
    En cada página: Download -> "Continue without donating" (o dona si quieres).
-2. Ejecuta `python3 creador/banco_modelos.py`.
+2. Ejecuta `python3 creador/banco_modelos.py --revisar`: trae de Descargas solo los zip
+   de paquetes 3D, los prepara y te dice qué paquetes recomendados te faltan, con enlace.
 3. Para ver qué hay: `python3 creador/banco_modelos.py --lista` (o `--lista truck`).
 
 Los modelos no se suben a git.
