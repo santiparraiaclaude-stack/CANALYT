@@ -74,10 +74,18 @@ def _punto(local, centro, rumbo):
             centro[1] + dx * math.sin(a) + dy * math.cos(a), centro[2] + local[2])
 
 
-def _mueble(rnd, palabras, pos, largo, color, caja, packs=("furniture",), rumbo=0, excluir=()):
-    """Un mueble del catálogo o, si no hay, una caja del tamaño indicado."""
+def _cil(base, radio, alto, color):
+    """Cilindro apoyado por su BASE (cilindro() recibe el centro)."""
+    return cilindro((base[0], base[1], base[2] + alto / 2), radio, alto, color, "ninguna")
+
+
+def _mueble(rnd, palabras, pos, largo, color, caja, packs=("furniture",), rumbo=0, excluir=(), alto=None):
+    """Un mueble del catálogo o, si no hay, una caja del tamaño indicado.
+    Con alto= se escala por su altura (mesas: lo que va encima queda apoyado)."""
     m = _uno(rnd, palabras, packs, excluir)
     if m:
+        if alto:
+            return [modelo(m, pos, alto=alto, rumbo=rumbo, anim="ninguna")]
         return [modelo(m, pos, largo=largo, rumbo=rumbo, anim="ninguna")]
     return [cubo((pos[0], pos[1], pos[2] + caja[2] / 2), caja, color, "ninguna", (0, 0, rumbo))]
 
@@ -113,18 +121,19 @@ def habitacion(centro=(0, 0, 0), ancho=4.5, fondo=4.2, alto=2.7, rumbo=0, pared=
     mesa = (x0 - w / 2 + 2.35, y0 + d / 2 - 0.35, z0)
     L += _mueble(rnd, ["beddouble", "bedsingle", "bed"], cama, 2.1, "blanco", (1.5, 2.0, 0.55), rumbo=180,
                  excluir=("bunk",))
+    # mesa de noche escalada por su ALTURA: así el tope es exacto y lo de encima no flota
     L += _mueble(rnd, ["sidetabledrawers", "sidetable", "nightstand", "cabinetbed"], mesa, 0.55, "madera",
-                 (0.5, 0.45, 0.55))
-    tope = (mesa[0], mesa[1], z0 + 0.56)
-    L += _mueble(rnd, ["lampsquaretable", "lamproundtable", "lamp"], (tope[0] + 0.12, tope[1] + 0.05, tope[2]),
-                 0.35, "farol", (0.2, 0.2, 0.35), excluir=("floor", "wall"))
+                 (0.6, 0.35, 0.55), alto=0.55)
+    tope = (mesa[0], mesa[1], z0 + 0.55)
+    L += _mueble(rnd, ["lampsquaretable", "lamproundtable", "lamp"], (tope[0] + 0.2, tope[1] + 0.03, tope[2]),
+                 0.2, "farol", (0.18, 0.18, 0.45), excluir=("floor", "wall", "ceiling"), alto=0.45)
     if luz_lampara:
-        L.append(luz((tope[0] + 0.12, tope[1], tope[2] + 0.45), (1.0, 0.7, 0.4), 18, 0.15, "ninguna",
+        L.append(luz((tope[0] + 0.2, tope[1] + 0.03, tope[2] + 0.36), (1.0, 0.7, 0.4), 18, 0.15, "ninguna",
                      id="lampara"))
     L += _mueble(rnd, ["wardrobe", "closet", "bookcaseclosed", "bookcase"], (x0 + w / 2 - 0.4, y0 + 0.4, z0),
                  1.4, "madera", (0.6, 1.4, 2.0), rumbo=90)
     L += _mueble(rnd, ["desk", "table"], (x0 + w / 2 - 0.5, y0 - d / 2 + 1.1, z0), 1.3, "madera",
-                 (0.7, 1.3, 0.75), rumbo=90, excluir=("side", "coffee", "lamp"))
+                 (0.7, 1.3, 0.75), rumbo=90, excluir=("side", "coffee", "lamp", "chair"), alto=0.75)
     L += _mueble(rnd, ["chairdesk", "chair"], (x0 + w / 2 - 1.1, y0 - d / 2 + 1.1, z0), 0.6, "negro",
                  (0.5, 0.5, 0.9), rumbo=90, excluir=("lounge",))
     L += _mueble(rnd, ["rugrectangle", "rug"], (x0 - 0.2, y0 - 0.2, z0 + 0.005), 2.2, "rojo",
@@ -165,13 +174,13 @@ def sotano(centro=(0, 0, -3), ancho=6.0, fondo=6.0, alto=2.4, escotilla=True, ru
             for py in (-0.78, 0.78):
                 L.append(cubo((xs + px, yy + py, z0 + 1.0), (0.04, 0.04, 2.0), "acero", "ninguna"))
     cx, cy = x0 + 1.0, y0 + d / 2 - 0.8                       # caldera con tubos
-    L.append(cilindro((cx, cy, z0), 0.55, 1.7, "naranja_osc", "ninguna"))
-    L.append(cilindro((cx, cy, z0 + 1.7), 0.1, h - 1.7, "acero", "ninguna"))
+    L.append(_cil((cx, cy, z0), 0.55, 1.7, "naranja_osc"))
+    L.append(_cil((cx, cy, z0 + 1.7), 0.1, h - 1.7, "acero"))
     L.append(cubo((cx - 0.56, cy, z0 + 0.6), (0.05, 0.35, 0.25), "negro", "ninguna"))
     L.append(cubo((cx - 0.58, cy, z0 + 0.6), (0.02, 0.25, 0.12), "ventana_calida", "ninguna", brillo=3))
     for k in range(3):
         L.append(cubo((x0, y0 + d / 2 - 0.08, z0 + h - 0.25 - k * 0.18), (w, 0.08, 0.08), "acero", "ninguna"))
-    L.append(cilindro((x0, y0, z0 + h - 0.4), 0.01, 0.4, "negro", "ninguna"))      # bombilla
+    L.append(_cil((x0, y0, z0 + h - 0.4), 0.01, 0.4, "negro"))                      # cable de la bombilla
     L.append(cubo((x0, y0, z0 + h - 0.45), (0.08, 0.08, 0.1), "farol", "ninguna", brillo=5))
     L.append(luz((x0, y0, z0 + h - 0.55), (1.0, 0.72, 0.42), 9, 0.1, "ninguna", id="bombilla"))
     puntos = {"caldera": (cx, cy, z0 + 0.9), "escalera": (x0 - w / 2 + 0.6, y0 - d / 2 + 1.2, z0 + 1.2),
@@ -255,7 +264,7 @@ def calle(y0=0, largo=90, ancho_via=7.0, tipo="suburbana", casas_por_lado=7, aut
         for yy in range(int(y0 - largo / 2 + 6), int(y0 + largo / 2), 16):
             for lado in (-1, 1):
                 fx = lado * (ancho_via / 2 + 0.4)
-                L.append(cilindro((fx, yy, 0), 0.08, 4.6, "acero", "ninguna"))
+                L.append(_cil((fx, yy, 0), 0.08, 4.6, "acero"))
                 L.append(cubo((fx - lado * 0.4, yy, 4.6), (0.9, 0.25, 0.15), "farol", "ninguna", brillo=6))
                 L.append(luz((fx - lado * 0.5, yy, 4.4), (1.0, 0.72, 0.42), 160, 0.3, "ninguna",
                              id=f"farola_{yy}_{lado}"))
