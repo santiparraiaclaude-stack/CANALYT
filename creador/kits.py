@@ -47,10 +47,15 @@ def buscar(palabras, packs=None, excluir=()):
 
 
 def _uno(rnd, palabras, packs=None, excluir=()):
-    """Un modelo al azar: primero de los packs preferidos y, si no hay, de cualquier pack
-    (así sirven también KayKit, Quaternius u otros que descargues)."""
-    ids = buscar(palabras, packs, excluir) or (buscar(palabras, None, excluir) if packs else [])
-    return rnd.choice(ids) if ids else None
+    """Un modelo al azar de la PRIMERA palabra que tenga alguno (las demás son de
+    respaldo); primero en los packs preferidos y, si no hay, en cualquier pack (así
+    sirven también KayKit, Quaternius u otros que descargues)."""
+    for grupo in ((packs, None) if packs else (None,)):
+        for palabra in palabras:
+            ids = buscar([palabra], grupo, excluir)
+            if ids:
+                return rnd.choice(ids)
+    return None
 
 
 def _rotar(piezas, centro, rumbo):
@@ -74,9 +79,9 @@ def _punto(local, centro, rumbo):
             centro[1] + dx * math.sin(a) + dy * math.cos(a), centro[2] + local[2])
 
 
-def _cil(base, radio, alto, color):
+def _cil(base, radio, alto, color, **extra):
     """Cilindro apoyado por su BASE (cilindro() recibe el centro)."""
-    return cilindro((base[0], base[1], base[2] + alto / 2), radio, alto, color, "ninguna")
+    return cilindro((base[0], base[1], base[2] + alto / 2), radio, alto, color, "ninguna", **extra)
 
 
 def _mueble(rnd, palabras, pos, largo, color, caja, packs=("furniture",), rumbo=0, excluir=(), alto=None):
